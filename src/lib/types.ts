@@ -67,3 +67,68 @@ export interface District {
   name: string;
   province: string;
 }
+
+export interface Category {
+  id: string;
+  name: string;
+}
+
+export interface ListingImage {
+  id: string;
+  listing_id: string;
+  url: string;
+  caption: string | null;
+  attribution: string | null;
+}
+
+// Mirrors backend/src/explore/explore.service.ts's travel_listing shape.
+export interface Listing {
+  id: string;
+  district_id: string;
+  category_id: string;
+  name: string;
+  description: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  tags: string[];
+  price_level: number | null;
+  price_per_night: string | null;
+  currency: string;
+  rating: string | null;
+  rating_count: number;
+  photo_url: string | null;
+  is_verified: boolean;
+  category: Category;
+  district: District;
+  listing_image: ListingImage[];
+}
+
+export interface PaginatedListings {
+  items: Listing[];
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+}
+
+export interface ListingsQuery {
+  district?: string;
+  category?: string;
+  q?: string;
+  minRating?: number;
+  page?: number;
+}
+
+export interface ExploreEvent {
+  id: string;
+  district_id: string;
+  name: string;
+  description: string | null;
+  start_datetime: string;
+  end_datetime: string | null;
+  venue_name: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  tags: string[];
+  district: District;
+}

@@ -1,5 +1,14 @@
 import axios from 'axios';
-import type { ChatSession, ChatSessionWithMessages, District, TripPlanResponse } from './types';
+import type {
+  Category,
+  ChatSession,
+  ChatSessionWithMessages,
+  District,
+  ExploreEvent,
+  ListingsQuery,
+  PaginatedListings,
+  TripPlanResponse,
+} from './types';
 
 // Points at NestJS, never the AI backend directly - see
 // docs/AI_BACKEND_ENDPOINTS.md: "the frontends never call the AI backend
@@ -40,4 +49,12 @@ export const chatApi = {
 
 export const exploreApi = {
   getDistricts: () => api.get<District[]>('/districts').then((r) => r.data),
+
+  getCategories: () => api.get<Category[]>('/categories').then((r) => r.data),
+
+  searchListings: (query: ListingsQuery = {}) =>
+    api.get<PaginatedListings>('/listings', { params: query }).then((r) => r.data),
+
+  getEvents: (params: { district?: string } = {}) =>
+    api.get<ExploreEvent[]>('/events', { params }).then((r) => r.data),
 };
