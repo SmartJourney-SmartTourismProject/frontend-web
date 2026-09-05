@@ -119,6 +119,74 @@ export interface ListingsQuery {
   page?: number;
 }
 
+export type TripStatus = 'draft' | 'upcoming' | 'past';
+
+export interface SaveTripPayload {
+  title?: string;
+  destination?: string;
+  travelers?: number;
+  budget?: number;
+  estimated_cost?: number;
+  currency?: string;
+  itinerary: {
+    day: number;
+    date?: string | null;
+    items: {
+      time?: string | null;
+      type: string;
+      name: string;
+      notes?: string | null;
+      lat: number;
+      lon: number;
+    }[];
+  }[];
+}
+
+export interface Trip {
+  id: string;
+  user_id: string;
+  district_id: string | null;
+  title: string | null;
+  start_date: string | null;
+  end_date: string | null;
+  travelers: number;
+  budget: string | null;
+  estimated_cost: string | null;
+  currency: string;
+  status: TripStatus;
+  created_at: string;
+  updated_at: string;
+  district: District | null;
+}
+
+export interface TripItineraryItem {
+  id: string;
+  itinerary_day_id: string;
+  listing_id: string | null;
+  event_id: string | null;
+  item_type: string;
+  name: string;
+  latitude: number | null;
+  longitude: number | null;
+  start_time: string | null;
+  end_time: string | null;
+  est_cost: string | null;
+  order_index: number;
+  notes: string | null;
+}
+
+export interface TripItineraryDay {
+  id: string;
+  itinerary_id: string;
+  day_number: number;
+  date: string | null;
+  itinerary_item: TripItineraryItem[];
+}
+
+export interface TripDetail extends Trip {
+  itinerary_day: TripItineraryDay[];
+}
+
 export interface ExploreEvent {
   id: string;
   district_id: string;

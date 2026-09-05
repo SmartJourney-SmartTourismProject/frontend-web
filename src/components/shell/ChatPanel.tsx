@@ -1,10 +1,10 @@
 'use client';
 
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { Send } from 'lucide-react';
-import { chatApi } from '@/lib/api';
+import { Bookmark, BookmarkCheck, Send } from 'lucide-react';
+import { chatApi, tripsApi } from '@/lib/api';
 import { useTripStore } from '@/lib/trip-store';
-import type { TripPlanResponse } from '@/lib/types';
+import type { SaveTripPayload, TripPlanResponse } from '@/lib/types';
 
 interface ChatEntry {
   role: 'user' | 'assistant' | 'error';
@@ -174,6 +174,36 @@ export function ChatPanel() {
 }
 
 function ItinerarySummary({ plan }: { plan: TripPlanResponse }) {
+  const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+
+  const handleSave = async () => {
+    if (saveState === 'saving' || saveState === 'saved') return;
+    setSaveState('saving');
+    const payload: SaveTripPayload = {
+      destination: plan.destination ?? undefined,
+      estimated_cost: plan.estimated_cost ?? undefined,
+      currency: plan.currency,
+      itinerary: plan.itinerary.map((day) => ({
+        day: day.day,
+        date: day.date,
+        items: day.items.map((item) => ({
+          time: item.time,
+          type: item.type,
+          name: item.name,
+          notes: item.notes,
+          lat: item.lat,
+          lon: item.lon,
+        })),
+      })),
+    };
+    try {
+      await tripsApi.save(payload);
+      setSaveState('saved');
+    } catch {
+      setSaveState('error');
+    }
+  };
+
   return (
     <div className="mt-3 overflow-hidden rounded-xl border border-gray-200 bg-white text-gray-900">
       <div className="flex items-center justify-between bg-brand-600 px-3 py-2 text-xs font-semibold text-white">
@@ -190,11 +220,36 @@ function ItinerarySummary({ plan }: { plan: TripPlanResponse }) {
           </li>
         ))}
       </ul>
-      {plan.estimated_cost != null && (
-        <div className="border-t border-gray-100 px-3 py-2 text-xs text-gray-600">
-          Estimated cost: {plan.estimated_cost.toLocaleString()} {plan.currency}
-        </div>
-      )}
+      <div className="flex items-center justify-between border-t border-gray-100 px-3 py-2 text-xs text-gray-600">
+        <span>
+          {plan.estimated_cost != null
+            ? `Estimated cost: ${plan.estimated_cost.toLocaleString()} ${plan.currency}`
+            : ''}
+        </span>
+        <button
+          onClick={handleSave}
+          disabled={saveState === 'saving' || saveState === 'saved'}
+          className={`flex items-center gap-1 rounded-full px-2.5 py-1 font-medium transition ${
+            saveState === 'saved'
+              ? 'bg-emerald-50 text-emerald-600'
+              : saveState === 'error'
+                ? 'bg-red-50 text-red-600'
+                : 'bg-brand-50 text-brand-700 hover:bg-brand-100'
+          }`}
+        >
+          {saveState === 'saved' ? (
+            <>
+              <BookmarkCheck className="h-3.5 w-3.5" /> Saved
+            </>
+          ) : saveState === 'error' ? (
+            'Save failed — retry'
+          ) : (
+            <>
+              <Bookmark className="h-3.5 w-3.5" /> {saveState === 'saving' ? 'Saving…' : 'Save itinerary'}
+            </>
+          )}
+        </button>
+      </div>
     </div>
   );
 }
