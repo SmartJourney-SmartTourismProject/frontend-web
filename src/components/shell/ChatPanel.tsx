@@ -228,9 +228,29 @@ function ItinerarySummary({ plan }: { plan: TripPlanResponse }) {
       </div>
       <ul className="divide-y divide-gray-100">
         {plan.itinerary.map((day) => (
-          <li key={day.day} className="px-3 py-2 text-xs">
-            <span className="font-semibold text-brand-700">DAY {day.day}</span>{' '}
-            <span className="text-gray-600">{day.items.map((item) => item.name).join(' → ')}</span>
+          <li key={day.day} className="px-3 py-2">
+            <div className="mb-1.5 flex items-baseline justify-between">
+              <span className="text-xs font-semibold text-brand-700">
+                DAY {day.day}
+                {day.date && <span className="ml-1.5 font-normal text-gray-400">{day.date}</span>}
+              </span>
+              {day.day_cost != null && (
+                <span className="text-[11px] text-gray-500">
+                  {day.day_cost.toLocaleString()} {plan.currency}
+                </span>
+              )}
+            </div>
+            <ul className="flex flex-col gap-1">
+              {day.items.map((item, idx) => (
+                <li key={idx} className="flex items-baseline gap-2 text-xs">
+                  <span className="w-12 shrink-0 font-mono text-gray-400">{item.time ?? '—'}</span>
+                  <span className="w-24 shrink-0 text-gray-500">
+                    {item.est_cost ? `${item.est_cost.toLocaleString()} ${item.currency ?? plan.currency}` : '—'}
+                  </span>
+                  <span className="text-gray-900">{item.name}</span>
+                </li>
+              ))}
+            </ul>
           </li>
         ))}
       </ul>
