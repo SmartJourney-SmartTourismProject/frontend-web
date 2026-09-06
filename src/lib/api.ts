@@ -3,12 +3,16 @@ import type {
   Category,
   ChatSession,
   ChatSessionWithMessages,
+  CreateExpensePayload,
   District,
+  Expense,
   ExploreEvent,
   ListingsQuery,
   PaginatedListings,
   SaveTripPayload,
   Trip,
+  TripBudget,
+  TripBudgetSummary,
   TripDetail,
   TripPlanResponse,
   TripStatus,
@@ -71,8 +75,28 @@ export const tripsApi = {
 
   getById: (id: string) => api.get<TripDetail>(`/trips/${id}`).then((r) => r.data),
 
-  update: (id: string, patch: { title?: string; status?: TripStatus; start_date?: string; end_date?: string }) =>
-    api.patch<Trip>(`/trips/${id}`, patch).then((r) => r.data),
+  update: (
+    id: string,
+    patch: { title?: string; status?: TripStatus; start_date?: string; end_date?: string; budget?: number },
+  ) => api.patch<Trip>(`/trips/${id}`, patch).then((r) => r.data),
 
   remove: (id: string) => api.delete<{ deleted: true }>(`/trips/${id}`).then((r) => r.data),
+};
+
+export const budgetApi = {
+  listExpenses: (tripId: string) =>
+    api.get<Expense[]>(`/trips/${tripId}/expenses`).then((r) => r.data),
+
+  addExpense: (tripId: string, payload: CreateExpensePayload) =>
+    api.post<Expense>(`/trips/${tripId}/expenses`, payload).then((r) => r.data),
+
+  updateExpense: (id: string, patch: Partial<CreateExpensePayload>) =>
+    api.patch<Expense>(`/expenses/${id}`, patch).then((r) => r.data),
+
+  deleteExpense: (id: string) =>
+    api.delete<{ deleted: true }>(`/expenses/${id}`).then((r) => r.data),
+
+  getTripBudget: (tripId: string) => api.get<TripBudget>(`/trips/${tripId}/budget`).then((r) => r.data),
+
+  getAllSummary: () => api.get<TripBudgetSummary[]>('/budget/summary').then((r) => r.data),
 };

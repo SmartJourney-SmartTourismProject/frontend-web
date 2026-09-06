@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 import type { ItineraryDay } from './types';
 
 interface TripState {
@@ -25,17 +26,33 @@ interface TripState {
 // the chat is what produces a plan, the map just renders whatever the
 // current plan is, so they need one source of truth rather than prop
 // drilling through the page.
-export const useTripStore = create<TripState>((set) => ({
-  sessionId: null,
-  itinerary: [],
-  destination: null,
-  estimatedCost: null,
-  currency: 'LKR',
-  sessionsVersion: 0,
-  setSessionId: (id) => set({ sessionId: id }),
-  setPlan: ({ itinerary, destination, estimatedCost, currency }) =>
-    set({ itinerary, destination, estimatedCost, currency }),
-  bumpSessionsVersion: () => set((s) => ({ sessionsVersion: s.sessionsVersion + 1 })),
-  reset: () =>
-    set({ sessionId: null, itinerary: [], destination: null, estimatedCost: null, currency: 'LKR' }),
-}));
+//
+// sessionId is persisted to localStorage (via partialize below) so a hard
+// refresh can restore "which chat was I just in" - without it, a reload
+// left ChatPanel with no session to restore from at all, even though the
+// message/plan data itself was correctly saved server-side. Everything
+// else here is intentionally NOT persisted - it's always refetched fresh
+// from the server (see ChatPanel's session-restore effect) rather than
+// risking a stale itinerary sitting in localStorage.
+export const useTripStore = create<TripState>()(
+  persist(
+    (set) => ({
+      sessionId: null,
+      itinerary: [],
+      destination: null,
+      estimatedCost: null,
+      currency: 'LKR',
+      sessionsVersion: 0,
+      setSessionId: (id) => set({ sessionId: id }),
+      setPlan: ({ itinerary, destination, estimatedCost, currency }) =>
+        set({ itinerary, destination, estimatedCost, currency }),
+      bumpSessionsVersion: () => set((s) => ({ sessionsVersion: s.sessionsVersion + 1 })),
+      reset: () =>
+        set({ sessionId: null, itinerary: [], destination: null, estimatedCost: null, currency: 'LKR' }),
+    }),
+    {
+      name: 'smartjourney-trip-store',
+      partialize: (state) => ({ sessionId: state.sessionId }),
+    },
+  ),
+);

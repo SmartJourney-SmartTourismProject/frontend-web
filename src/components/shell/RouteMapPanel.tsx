@@ -58,7 +58,15 @@ export function RouteMapPanel() {
     mapRef.current = map;
     markersRef.current = L.layerGroup().addTo(map);
 
+    // Leaflet measures its container once on init and doesn't notice CSS
+    // width/visibility changes on its own (e.g. the hide/show slide
+    // animation on the Home page) - without this it keeps rendering at the
+    // stale size, or shows a grey/blank tile grid after the panel resizes.
+    const resizeObserver = new ResizeObserver(() => map.invalidateSize());
+    resizeObserver.observe(containerRef.current);
+
     return () => {
+      resizeObserver.disconnect();
       map.remove();
       mapRef.current = null;
     };

@@ -42,13 +42,27 @@ export function ChatPanel() {
         session.chat_message.map((m) => ({
           role: m.role,
           content: m.content,
+          plan: m.plan ?? undefined,
         })),
       );
+      // Re-hydrate the map too - without this, switching back to an older
+      // session left the map showing whatever the previous session's route
+      // was (or nothing, on a fresh page load).
+      const messagesWithPlans = session.chat_message.filter((m) => m.plan);
+      const lastPlan = messagesWithPlans.at(-1)?.plan;
+      if (lastPlan) {
+        setPlan({
+          itinerary: lastPlan.itinerary,
+          destination: lastPlan.destination,
+          estimatedCost: lastPlan.estimated_cost,
+          currency: lastPlan.currency,
+        });
+      }
     });
     return () => {
       cancelled = true;
     };
-  }, [sessionId]);
+  }, [sessionId, setPlan]);
 
   useEffect(() => {
     logRef.current?.scrollTo({ top: logRef.current.scrollHeight, behavior: 'smooth' });

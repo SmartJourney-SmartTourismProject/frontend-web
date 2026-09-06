@@ -7,6 +7,7 @@ import { Compass, Wallet, Calendar, Plus, Search, Settings, Plane } from 'lucide
 import { chatApi } from '@/lib/api';
 import { groupByRecency } from '@/lib/group-by-recency';
 import { useTripStore } from '@/lib/trip-store';
+import { SettingsModal } from '@/components/settings/SettingsModal';
 import type { ChatSession } from '@/lib/types';
 
 const NAV_ITEMS = [
@@ -20,6 +21,7 @@ export function AppSidebar() {
   const pathname = usePathname();
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [search, setSearch] = useState('');
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const sessionsVersion = useTripStore((s) => s.sessionsVersion);
   const currentSessionId = useTripStore((s) => s.sessionId);
   const setSessionId = useTripStore((s) => s.setSessionId);
@@ -132,13 +134,15 @@ export function AppSidebar() {
         </div>
         <button
           type="button"
-          title="Settings (coming soon)"
-          disabled
-          className="rounded-lg p-1.5 text-gray-300"
+          title="Settings"
+          onClick={() => setSettingsOpen(true)}
+          className="rounded-lg p-1.5 text-gray-500 hover:bg-gray-100"
         >
           <Settings className="h-4 w-4" />
         </button>
       </div>
+
+      <SettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </aside>
   );
 }

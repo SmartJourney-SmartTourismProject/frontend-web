@@ -20,6 +20,10 @@ export interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
   created_at: string;
+  // Only set on assistant messages that carried an actual itinerary - lets
+  // the itinerary summary card be rebuilt after a reload/session switch
+  // instead of only showing the rendered text.
+  plan: TripPlanResponse | null;
 }
 
 export interface ChatSessionWithMessages extends ChatSession {
@@ -199,4 +203,56 @@ export interface ExploreEvent {
   longitude: number | null;
   tags: string[];
   district: District;
+}
+
+// Mirrors backend/src/budget's shapes.
+export interface Expense {
+  id: string;
+  itinerary_id: string;
+  category: string;
+  amount: string;
+  currency: string;
+  description: string | null;
+  occurred_at: string;
+  created_at: string;
+}
+
+export interface CreateExpensePayload {
+  category: string;
+  amount: number;
+  currency?: string;
+  description?: string;
+  occurred_at?: string;
+}
+
+export interface CategoryBreakdown {
+  category: string;
+  amount: number;
+  percentage: number;
+}
+
+export interface TripBudget {
+  trip: {
+    id: string;
+    title: string | null;
+    budget: number | null;
+    estimated_cost: number | null;
+    currency: string;
+  };
+  total: number | null;
+  spent: number;
+  remaining: number | null;
+  daily_average: number;
+  planned_days: number;
+  status: 'on_track' | 'watch' | 'over_budget' | 'no_budget';
+  by_category: CategoryBreakdown[];
+}
+
+export interface TripBudgetSummary {
+  id: string;
+  title: string | null;
+  budget: number | null;
+  currency: string;
+  spent: number;
+  status: 'on_track' | 'watch' | 'over_budget' | 'no_budget';
 }
