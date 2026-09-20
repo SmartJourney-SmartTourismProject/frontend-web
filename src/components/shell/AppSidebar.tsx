@@ -3,7 +3,10 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { Compass, Wallet, Calendar, Plus, Search, Settings, Plane } from 'lucide-react';
+import { Compass, Wallet, Calendar, Plus, Search, Settings, Plane, LogOut } from 'lucide-react';
+import { useSession } from 'next-auth/react';
+import { signOutEverywhere } from '@/lib/auth-client';
+import { initials } from '@/lib/initials';
 import { chatApi } from '@/lib/api';
 import { groupByRecency } from '@/lib/group-by-recency';
 import { useTripStore } from '@/lib/trip-store';
@@ -22,6 +25,8 @@ export function AppSidebar() {
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [search, setSearch] = useState('');
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const user = useSession().data?.user;
+  const isAdmin = user?.roles.includes('admin') ?? false;
   const sessionsVersion = useTripStore((s) => s.sessionsVersion);
   const currentSessionId = useTripStore((s) => s.sessionId);
   const setSessionId = useTripStore((s) => s.setSessionId);
@@ -126,11 +131,11 @@ export function AppSidebar() {
 
       <div className="flex items-center gap-2.5 border-t border-gray-100 px-4 py-3">
         <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-gradient text-xs font-semibold text-white">
-          ST
+          {initials(user?.name ?? user?.email)}
         </span>
-        <div className="flex-1">
-          <p className="text-sm font-semibold text-gray-900">Stt</p>
-          <p className="text-xs text-gray-500">Traveler account</p>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-semibold text-gray-900">{user?.name ?? user?.email ?? 'Guest'}</p>
+          <p className="text-xs text-gray-500">{isAdmin ? 'Platform admin' : 'Traveler account'}</p>
         </div>
         <button
           type="button"
@@ -139,6 +144,14 @@ export function AppSidebar() {
           className="rounded-lg p-1.5 text-gray-500 hover:bg-gray-100"
         >
           <Settings className="h-4 w-4" />
+        </button>
+        <button
+          type="button"
+          title="Sign out"
+          onClick={() => signOutEverywhere()}
+          className="rounded-lg p-1.5 text-gray-500 hover:bg-gray-100"
+        >
+          <LogOut className="h-4 w-4" />
         </button>
       </div>
 

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Bell, CreditCard, Plane, User, X } from 'lucide-react';
+import { useSession } from 'next-auth/react';
 import { AccountTab } from './tabs/AccountTab';
 import { SubscriptionTab } from './tabs/SubscriptionTab';
 import { NotificationsTab } from './tabs/NotificationsTab';
@@ -30,6 +31,7 @@ export function SettingsModal({
   onClose: () => void;
 }) {
   const [activeTab, setActiveTab] = useState<SettingsTab>(initialTab);
+  const user = useSession().data?.user;
 
   if (!open) return null;
   const meta = TAB_META[activeTab];
@@ -73,8 +75,8 @@ export function SettingsModal({
             ))}
           </nav>
           <div className="mt-auto border-t border-white/20 px-1 pt-4 text-xs text-white/70">
-            <p>Traveler account</p>
-            <p>Signed in as STT</p>
+            <p>{user?.roles.includes('admin') ? 'Platform admin' : 'Traveler account'}</p>
+            <p className="truncate">Signed in as {user?.name ?? user?.email ?? 'Guest'}</p>
           </div>
         </aside>
 
