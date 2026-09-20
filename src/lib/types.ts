@@ -77,6 +77,49 @@ export interface Category {
   name: string;
 }
 
+/** tag_vocabulary row - the only values travel_interests may contain. */
+export interface Tag {
+  tag: string;
+  label: string;
+  is_outdoor: boolean;
+}
+
+export type TravelStyle = 'budget' | 'balanced' | 'luxury';
+
+/** traveler_profile - what the AI backend reads to default a trip request. */
+export interface UserPreferences {
+  travel_interests: string[];
+  travel_style: TravelStyle | null;
+  default_budget: number | null;
+  currency: string;
+  updated_at: string | null;
+}
+
+export interface UpdatePreferencesPayload {
+  travel_interests?: string[];
+  travel_style?: TravelStyle | null;
+  default_budget?: number | null;
+  currency?: string;
+}
+
+/** GET /users/me. name/email are Keycloak's (edited in its account console). */
+export interface Me {
+  id: string;
+  email: string;
+  name: string | null;
+  phone: string | null;
+  role: 'traveler' | 'admin';
+  email_verified: boolean;
+  location_enabled: boolean;
+  created_at: string;
+  preferences: UserPreferences;
+}
+
+export interface UpdateMePayload {
+  phone?: string | null;
+  location_enabled?: boolean;
+}
+
 export interface ListingImage {
   id: string;
   listing_id: string;

@@ -9,14 +9,19 @@ import type {
   Expense,
   ExploreEvent,
   ListingsQuery,
+  Me,
   PaginatedListings,
   SaveTripPayload,
+  Tag,
   Trip,
   TripBudget,
   TripBudgetSummary,
   TripDetail,
   TripPlanResponse,
   TripStatus,
+  UpdateMePayload,
+  UpdatePreferencesPayload,
+  UserPreferences,
 } from './types';
 
 // Points at NestJS, never the AI backend directly - see
@@ -92,6 +97,20 @@ export const exploreApi = {
 
   getEvents: (params: { district?: string } = {}) =>
     api.get<ExploreEvent[]>('/events', { params }).then((r) => r.data),
+
+  getTags: () => api.get<Tag[]>('/tags').then((r) => r.data),
+};
+
+export const usersApi = {
+  me: () => api.get<Me>('/users/me').then((r) => r.data),
+
+  updateMe: (patch: UpdateMePayload) =>
+    api.patch<Omit<Me, 'preferences'>>('/users/me', patch).then((r) => r.data),
+
+  getPreferences: () => api.get<UserPreferences>('/users/me/preferences').then((r) => r.data),
+
+  updatePreferences: (patch: UpdatePreferencesPayload) =>
+    api.patch<UserPreferences>('/users/me/preferences', patch).then((r) => r.data),
 };
 
 export const tripsApi = {

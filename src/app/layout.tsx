@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import { Alexandria, Fraunces } from 'next/font/google';
 import './globals.css';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 import { Providers } from './providers';
 
 // Fraunces (serif, headings/logo) + Alexandria (sans, body) match the brand
@@ -17,11 +19,13 @@ export const metadata: Metadata = {
   description: 'AI-powered trip planning for Sri Lanka',
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  // Read once per request here so SessionProvider starts hydrated (see providers.tsx).
+  const session = await getServerSession(authOptions);
   return (
     <html lang="en" className={`${fraunces.variable} ${alexandria.variable} h-full antialiased`}>
       <body className="min-h-full bg-white font-sans text-gray-900">
-        <Providers>{children}</Providers>
+        <Providers session={session}>{children}</Providers>
       </body>
     </html>
   );
