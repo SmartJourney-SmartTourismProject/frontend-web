@@ -1,8 +1,8 @@
 'use client'
 
 // Local, persisted "backend" for everything that doesn't have a real API yet
-// (auth, saved itineraries, budget tracker, notifications, subscription,
-// chat history, admin data). Only the AI trip-planning call in lib/api.ts
+// (saved itineraries, budget tracker, notifications, subscription, chat
+// history, admin data). Auth is real: Keycloak via next-auth, see lib/auth.ts. Only the AI trip-planning call in lib/api.ts
 // (`tripApi.planTrip`) hits the real FastAPI service — see ai-backend/main.py,
 // which currently only exposes /api/plan-trip, /api/health, /api/rag/*.
 //
@@ -15,7 +15,6 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { generateId } from './utils'
 import type {
-  AppUser,
   ChatThread,
   ChatMessage,
   Expense,
@@ -25,69 +24,25 @@ import type {
 } from '@/types/app'
 
 // ---------------------------------------------------------------------------
-// Auth
+// Local preferences
 // ---------------------------------------------------------------------------
+//
+// Identity is NOT here any more - it comes from Keycloak via next-auth
+// (`useSession()` from 'next-auth/react'; helpers in lib/auth-client.ts).
+// This store only keeps per-device preferences that have no server home yet.
 
-interface AuthState {
-  user: AppUser | null
-  isAuthenticated: boolean
-  signUp: (email: string, username?: string) => AppUser
-  signIn: (email: string) => AppUser
-  signOut: () => void
-  updateProfile: (patch: Partial<AppUser>) => void
+interface PreferencesState {
+  locationAccessEnabled: boolean
   toggleLocationAccess: () => void
-  changePassword: () => void
 }
 
-function initials(nameOrEmail: string) {
-  const base = nameOrEmail.split('@')[0]
-  return base.slice(0, 2).toUpperCase()
-}
-
-export const useAuthStore = create<AuthState>()(
+export const usePreferencesStore = create<PreferencesState>()(
   persist(
-    (set, get) => ({
-      user: null,
-      isAuthenticated: false,
-      signUp: (email, username) => {
-        const name = username || email.split('@')[0]
-        const user: AppUser = {
-          id: generateId(),
-          username: name.toUpperCase().slice(0, 8),
-          email,
-          phone: '+94 71 000 0000',
-          avatarInitials: initials(name),
-          accountType: 'Traveler account',
-          locationAccessEnabled: true,
-          passwordLastChangedLabel: 'Just now',
-          createdAt: new Date().toISOString(),
-        }
-        set({ user, isAuthenticated: true })
-        return user
-      },
-      signIn: (email) => {
-        const existing = get().user
-        if (existing && existing.email === email) {
-          set({ isAuthenticated: true })
-          return existing
-        }
-        return get().signUp(email)
-      },
-      signOut: () => set({ isAuthenticated: false }),
-      updateProfile: (patch) =>
-        set((s) => ({ user: s.user ? { ...s.user, ...patch } : s.user })),
-      toggleLocationAccess: () =>
-        set((s) =>
-          s.user
-            ? { user: { ...s.user, locationAccessEnabled: !s.user.locationAccessEnabled } }
-            : s
-        ),
-      changePassword: () =>
-        set((s) =>
-          s.user ? { user: { ...s.user, passwordLastChangedLabel: 'Just now' } } : s
-        ),
+    (set) => ({
+      locationAccessEnabled: true,
+      toggleLocationAccess: () => set((s) => ({ locationAccessEnabled: !s.locationAccessEnabled })),
     }),
-    { name: 'sj-auth' }
+    { name: 'sj-preferences' }
   )
 )
 

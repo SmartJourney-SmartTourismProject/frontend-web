@@ -116,8 +116,30 @@ export function keycloakLogoutUrl(idToken: string | undefined, postLogoutRedirec
   return `${logoutEndpoint}?${params.toString()}`
 }
 
+const keycloak = KeycloakProvider({ clientId, clientSecret, issuer })
+
+// Same client, but the browser lands on Keycloak's registration form instead
+// of the login form. Keycloak exposes that as a separate authorize endpoint
+// (`/registrations`), and next-auth ignores an `authorization.url` override
+// when `wellKnown` discovery is set, so the endpoints are spelled out here.
+// Its callback is /api/auth/callback/keycloak-register - registered on the
+// smartjourney-web client in Keycloak alongside the normal one.
+const keycloakRegister: typeof keycloak = {
+  ...keycloak,
+  id: 'keycloak-register',
+  name: 'Keycloak (register)',
+  wellKnown: undefined,
+  authorization: {
+    url: `${issuer}/protocol/openid-connect/registrations`,
+    params: { scope: 'openid email profile' },
+  },
+  token: tokenEndpoint,
+  userinfo: `${issuer}/protocol/openid-connect/userinfo`,
+  jwks_endpoint: `${issuer}/protocol/openid-connect/certs`,
+}
+
 export const authOptions: NextAuthOptions = {
-  providers: [KeycloakProvider({ clientId, clientSecret, issuer })],
+  providers: [keycloak, keycloakRegister],
   session: { strategy: 'jwt' },
   pages: { signIn: '/login' },
   callbacks: {

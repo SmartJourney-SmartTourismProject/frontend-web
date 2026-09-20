@@ -10,12 +10,15 @@ import {
   Calendar,
   DollarSign,
   Settings,
+  LogOut,
   PanelLeft,
   ChevronLeft,
 } from 'lucide-react'
 import { Plane } from 'lucide-react'
-import { useAuthStore, useChatStore } from '@/lib/store'
-import { cn } from '@/lib/utils'
+import { useSession } from 'next-auth/react'
+import { useChatStore } from '@/lib/store'
+import { signOutEverywhere } from '@/lib/auth-client'
+import { cn, initials } from '@/lib/utils'
 
 const NAV = [
   { href: '/explore', label: 'Explore', icon: Bookmark },
@@ -27,7 +30,9 @@ export function AppSidebar() {
   const pathname = usePathname()
   const router = useRouter()
   const { threads, activeThreadId, setActiveThread, createThread } = useChatStore()
-  const user = useAuthStore((s) => s.user)
+  const { data: session } = useSession()
+  const user = session?.user
+  const isAdmin = user?.roles.includes('admin') ?? false
   const [query, setQuery] = useState('')
   const [collapsed, setCollapsed] = useState(false)
 
@@ -126,15 +131,23 @@ export function AppSidebar() {
         </Link>
         <div className="flex items-center gap-2.5">
           <div className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-gradient text-xs font-bold text-white">
-            {user?.avatarInitials ?? 'ST'}
+            {initials(user?.name ?? user?.email)}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold text-gray-900">{user?.username ?? 'Guest'}</p>
-            <p className="truncate text-xs text-gray-400">Traveler account</p>
+            <p className="truncate text-sm font-semibold text-gray-900">{user?.name ?? user?.email ?? 'Guest'}</p>
+            <p className="truncate text-xs text-gray-400">{isAdmin ? 'Platform admin' : 'Traveler account'}</p>
           </div>
           <Link href="/account" className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600" aria-label="Settings">
             <Settings className="h-4 w-4" />
           </Link>
+          <button
+            onClick={() => signOutEverywhere()}
+            className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+            aria-label="Sign out"
+            title="Sign out"
+          >
+            <LogOut className="h-4 w-4" />
+          </button>
         </div>
       </div>
     </aside>

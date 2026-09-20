@@ -1,16 +1,32 @@
 'use client'
 
-import { useState } from 'react'
-import { Pencil } from 'lucide-react'
-import toast from 'react-hot-toast'
+import { ExternalLink, LogOut } from 'lucide-react'
+import { useSession } from 'next-auth/react'
 import { SettingsShell } from '@/components/settings/SettingsShell'
 import { Toggle } from '@/components/ui/Toggle'
-import { useAuthStore } from '@/lib/store'
+import { changePasswordInKeycloak, signOutEverywhere } from '@/lib/auth-client'
+import { usePreferencesStore } from '@/lib/store'
+import { initials } from '@/lib/utils'
+
+// Name, email and password live in Keycloak. Editing them happens either
+// through Keycloak's own screens (password: application-initiated action;
+// everything else: the realm's account console) - not here, so the realm's
+// policies always apply. Phone / travel preferences will come from NestJS
+// `/users/me` once that exists (BACKEND_PLAN.md §5.2).
+const ACCOUNT_CONSOLE_URL = `${process.env.NEXT_PUBLIC_KEYCLOAK_ISSUER ?? 'http://localhost:8081/realms/smartjourney'}/account`
 
 export default function AccountPage() {
-  const { user, updateProfile, toggleLocationAccess, changePassword } = useAuthStore()
-  const [editingField, setEditingField] = useState<'username' | 'phone' | null>(null)
-  const [draft, setDraft] = useState('')
+  const { data: session, status } = useSession()
+  const { locationAccessEnabled, toggleLocationAccess } = usePreferencesStore()
+  const user = session?.user
+
+  if (status === 'loading') {
+    return (
+      <SettingsShell title="Account" subtitle="Manage your profile, contact details and login">
+        <p className="text-sm text-gray-400">Loading…</p>
+      </SettingsShell>
+    )
+  }
 
   if (!user) {
     return (
@@ -22,55 +38,35 @@ export default function AccountPage() {
     )
   }
 
-  function startEdit(field: 'username' | 'phone') {
-    setEditingField(field)
-    setDraft(field === 'username' ? user!.username : user!.phone ?? '')
-  }
-
-  function saveEdit() {
-    if (!editingField) return
-    updateProfile({ [editingField]: draft } as any)
-    setEditingField(null)
-    toast.success('Saved')
-  }
+  const isAdmin = user.roles.includes('admin')
 
   return (
     <SettingsShell title="Account" subtitle="Manage your profile, contact details and login">
       <div className="flex items-center gap-4">
         <div className="flex h-16 w-16 items-center justify-center rounded-full bg-brand-gradient text-xl font-bold text-white">
-          {user.avatarInitials}
+          {initials(user.name ?? user.email)}
         </div>
         <div>
-          <p className="text-lg font-semibold text-gray-900">{user.username}</p>
-          <p className="text-sm text-gray-400">{user.accountType}</p>
+          <p className="text-lg font-semibold text-gray-900">{user.name ?? user.email}</p>
+          <p className="text-sm text-gray-400">{isAdmin ? 'Platform admin' : 'Traveler account'}</p>
         </div>
       </div>
 
       <div className="mt-8">
         <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-400">Profile</p>
-        <FieldRow
-          label="Username"
-          value={editingField === 'username' ? undefined : user.username}
-          editing={editingField === 'username'}
-          draft={draft}
-          onDraftChange={setDraft}
-          onEdit={() => startEdit('username')}
-          onSave={saveEdit}
-        />
-        <div className="border-t border-gray-100 py-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-berry-500">Email</p>
-          <p className="mt-1 font-semibold text-gray-900">{user.email}</p>
-          <p className="mt-0.5 text-xs text-gray-400">Used for booking confirmations &amp; login</p>
+        <Row label="Name" value={user.name ?? '—'} />
+        <Row label="Email" value={user.email ?? '—'} hint="Used for booking confirmations & login" />
+        <div className="flex items-center justify-between border-t border-gray-100 py-4">
+          <p className="text-xs text-gray-400">Name and email are managed in your SmartJourney account console.</p>
+          <a
+            href={ACCOUNT_CONSOLE_URL}
+            target="_blank"
+            rel="noreferrer"
+            className="flex items-center gap-1.5 rounded-lg border border-royal-200 px-3 py-1.5 text-sm font-semibold text-royal-700 hover:bg-royal-50"
+          >
+            Edit profile <ExternalLink className="h-3.5 w-3.5" />
+          </a>
         </div>
-        <FieldRow
-          label="Phone Number"
-          value={editingField === 'phone' ? undefined : user.phone}
-          editing={editingField === 'phone'}
-          draft={draft}
-          onDraftChange={setDraft}
-          onEdit={() => startEdit('phone')}
-          onSave={saveEdit}
-        />
       </div>
 
       <div className="mt-6">
@@ -81,7 +77,7 @@ export default function AccountPage() {
             <p className="mt-1 font-semibold text-gray-900">Enable location access</p>
             <p className="mt-0.5 text-xs text-gray-400">Lets SmartJourney tailor nearby stops and live directions</p>
           </div>
-          <Toggle checked={user.locationAccessEnabled} onChange={toggleLocationAccess} label="Location access" />
+          <Toggle checked={locationAccessEnabled} onChange={toggleLocationAccess} label="Location access" />
         </div>
       </div>
 
@@ -91,60 +87,36 @@ export default function AccountPage() {
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide text-berry-500">Password</p>
             <p className="mt-1 font-mono text-gray-900">••••••••••</p>
-            <p className="mt-0.5 text-xs text-gray-400">Last changed {user.passwordLastChangedLabel}</p>
+            <p className="mt-0.5 text-xs text-gray-400">You&rsquo;ll confirm your current password, then choose a new one</p>
           </div>
-          <a
-            href="/reset-password"
-            onClick={() => changePassword()}
-            className="btn-gradient px-4 py-2 text-sm"
-          >
+          <button onClick={() => changePasswordInKeycloak('/account')} className="btn-gradient px-4 py-2 text-sm">
             Change password
-          </a>
+          </button>
+        </div>
+        <div className="flex items-center justify-between border-t border-gray-100 py-4">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-berry-500">Session</p>
+            <p className="mt-1 font-semibold text-gray-900">Sign out of SmartJourney</p>
+            <p className="mt-0.5 text-xs text-gray-400">Signs you out on this device, including single sign-on</p>
+          </div>
+          <button
+            onClick={() => signOutEverywhere()}
+            className="flex items-center gap-1.5 rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+          >
+            <LogOut className="h-4 w-4" /> Sign out
+          </button>
         </div>
       </div>
     </SettingsShell>
   )
 }
 
-function FieldRow({
-  label,
-  value,
-  editing,
-  draft,
-  onDraftChange,
-  onEdit,
-  onSave,
-}: {
-  label: string
-  value?: string
-  editing: boolean
-  draft: string
-  onDraftChange: (v: string) => void
-  onEdit: () => void
-  onSave: () => void
-}) {
+function Row({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
-    <div className="flex items-center justify-between border-t border-gray-100 py-4">
-      <div className="flex-1">
-        <p className="text-xs font-semibold uppercase tracking-wide text-berry-500">{label}</p>
-        {editing ? (
-          <input
-            autoFocus
-            value={draft}
-            onChange={(e) => onDraftChange(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && onSave()}
-            className="input mt-1 max-w-xs py-1.5"
-          />
-        ) : (
-          <p className="mt-1 font-semibold text-gray-900">{value}</p>
-        )}
-      </div>
-      <button
-        onClick={editing ? onSave : onEdit}
-        className="flex items-center gap-1.5 rounded-lg border border-royal-200 px-3 py-1.5 text-sm font-semibold text-royal-700 hover:bg-royal-50"
-      >
-        <Pencil className="h-3.5 w-3.5" /> {editing ? 'Save' : 'Edit'}
-      </button>
+    <div className="border-t border-gray-100 py-4">
+      <p className="text-xs font-semibold uppercase tracking-wide text-berry-500">{label}</p>
+      <p className="mt-1 font-semibold text-gray-900">{value}</p>
+      {hint && <p className="mt-0.5 text-xs text-gray-400">{hint}</p>}
     </div>
   )
 }

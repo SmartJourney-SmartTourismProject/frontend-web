@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { User, CreditCard, Bell, X } from 'lucide-react'
 import { Plane } from 'lucide-react'
-import { useAuthStore } from '@/lib/store'
+import { useSession } from 'next-auth/react'
 import { cn } from '@/lib/utils'
 
 const NAV = [
@@ -24,7 +24,8 @@ export function SettingsShell({
 }) {
   const pathname = usePathname()
   const router = useRouter()
-  const user = useAuthStore((s) => s.user)
+  const user = useSession().data?.user
+  const isAdmin = user?.roles.includes('admin') ?? false
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-100 p-4 sm:p-8">
@@ -56,8 +57,8 @@ export function SettingsShell({
             </nav>
           </div>
           <div className="border-t border-white/10 pt-4 text-xs text-royal-300">
-            <p>Traveler account</p>
-            <p>Signed in as {user?.username ?? 'Guest'}</p>
+            <p>{isAdmin ? 'Platform admin' : 'Traveler account'}</p>
+            <p className="truncate">Signed in as {user?.name ?? user?.email ?? 'Guest'}</p>
           </div>
         </aside>
 

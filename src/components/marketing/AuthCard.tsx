@@ -1,13 +1,22 @@
 'use client'
 
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import { useState, type FormEvent } from 'react'
-import { ArrowLeft, Eye, EyeOff } from 'lucide-react'
-import toast from 'react-hot-toast'
+import { useSearchParams } from 'next/navigation'
+import { useState } from 'react'
+import { ArrowLeft, KeyRound, Loader2, LogIn, UserPlus } from 'lucide-react'
 import { LogoWordmark } from '@/components/ui/Logo'
-import { useAuthStore } from '@/lib/store'
-import { isValidEmail } from '@/lib/utils'
+import {
+  changePasswordInKeycloak,
+  registerWithKeycloak,
+  signInWithGoogle,
+  signInWithKeycloak,
+} from '@/lib/auth-client'
+
+// Login, registration and password changes all happen on Keycloak's own
+// pages (realm `smartjourney`) - that's where the accounts, the password
+// policy and the Google identity provider live. This card is the launcher:
+// it explains what's about to happen and sends the browser to the right
+// Keycloak screen. Nothing here ever sees a password.
 
 type Mode = 'signin' | 'signup' | 'reset'
 
@@ -16,58 +25,47 @@ const TABS: { id: Mode; label: string; href: string }[] = [
   { id: 'signup', label: 'Sign Up', href: '/signup' },
 ]
 
+// next-auth's error codes surface as ?error=… on the sign-in page.
+const ERROR_MESSAGES: Record<string, string> = {
+  OAuthCallback: 'Sign-in was cancelled or Keycloak returned an error. Please try again.',
+  OAuthSignin: 'Could not reach the sign-in server. Is Keycloak running?',
+  AccessDenied: 'You do not have access to that page.',
+  SessionRequired: 'Please sign in to continue.',
+  Default: 'Something went wrong while signing in. Please try again.',
+}
+
 export function AuthCard({ mode }: { mode: Mode }) {
-  const router = useRouter()
-  const signIn = useAuthStore((s) => s.signIn)
-  const signUp = useAuthStore((s) => s.signUp)
-  const changePassword = useAuthStore((s) => s.changePassword)
+  const params = useSearchParams()
+  const callbackUrl = params.get('callbackUrl') ?? '/home'
+  const errorCode = params.get('error')
+  const [pending, setPending] = useState<'keycloak' | 'google' | null>(null)
 
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [confirmPassword, setConfirmPassword] = useState('')
-  const [currentPassword, setCurrentPassword] = useState('')
-  const [showPassword, setShowPassword] = useState(false)
-  const [agreed, setAgreed] = useState(false)
-  const [remember, setRemember] = useState(false)
+  const tabs =
+    mode === 'reset'
+      ? [
+          { id: 'signin' as Mode, label: 'Sign In', href: '/login' },
+          { id: 'reset' as Mode, label: 'Change Password', href: '/reset-password' },
+        ]
+      : TABS
 
-  const tabs = mode === 'reset' ? [{ id: 'signin' as Mode, label: 'Sign In', href: '/login' }, { id: 'reset' as Mode, label: 'Change Password', href: '/reset-password' }] : TABS
+  const title = mode === 'signin' ? 'Welcome Back' : mode === 'signup' ? 'Create Your Account' : 'Change Your Password'
+  const subtitle =
+    mode === 'signin'
+      ? 'Sign in to access your account'
+      : mode === 'signup'
+        ? 'Join SmartJourney in a few seconds'
+        : 'You will be asked to sign in, then to choose a new password'
 
-  function handleSubmit(e: FormEvent) {
-    e.preventDefault()
-
-    if (mode === 'signin') {
-      if (!isValidEmail(email)) return toast.error('Enter a valid email address')
-      if (!password) return toast.error('Enter your password')
-      signIn(email)
-      toast.success('Welcome back!')
-      router.push('/home')
-      return
-    }
-
-    if (mode === 'signup') {
-      if (!isValidEmail(email)) return toast.error('Enter a valid email address')
-      if (password.length < 6) return toast.error('Password must be at least 6 characters')
-      if (password !== confirmPassword) return toast.error('Passwords do not match')
-      if (!agreed) return toast.error('Please agree to the Terms & Policies')
-      signUp(email)
-      toast.success('Account created — welcome to SmartJourney!')
-      router.push('/home')
-      return
-    }
-
-    if (mode === 'reset') {
-      if (!currentPassword) return toast.error('Enter your current password')
-      if (password.length < 6) return toast.error('New password must be at least 6 characters')
-      if (password !== confirmPassword) return toast.error('Passwords do not match')
-      changePassword()
-      toast.success('Password updated')
-      router.push('/login')
-    }
+  async function go(kind: 'keycloak' | 'google') {
+    setPending(kind)
+    if (kind === 'google') return signInWithGoogle(callbackUrl)
+    if (mode === 'signup') return registerWithKeycloak(callbackUrl)
+    if (mode === 'reset') return changePasswordInKeycloak('/account')
+    return signInWithKeycloak(callbackUrl)
   }
 
-  const title = 'Welcome Back'
-  const subtitle =
-    mode === 'signin' ? 'Sign in to access your account' : mode === 'signup' ? 'Create Your account' : 'Change Your Password Here'
+  const primaryLabel = mode === 'signin' ? 'Sign In' : mode === 'signup' ? 'Sign Up' : 'Change Password'
+  const PrimaryIcon = mode === 'signin' ? LogIn : mode === 'signup' ? UserPlus : KeyRound
 
   return (
     <div className="relative w-full max-w-md rounded-3xl border border-white/40 bg-white/85 p-8 shadow-2xl shadow-royal-950/20 backdrop-blur-xl sm:p-10">
@@ -97,107 +95,28 @@ export function AuthCard({ mode }: { mode: Mode }) {
         ))}
       </div>
 
-      <form onSubmit={handleSubmit} className="mt-6 space-y-4">
-        {mode !== 'reset' && (
-          <div>
-            <label className="label">Email Address</label>
-            <input
-              type="email"
-              className="input"
-              placeholder="abc@gmail.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-          </div>
-        )}
+      {errorCode && (
+        <p className="mt-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
+          {ERROR_MESSAGES[errorCode] ?? ERROR_MESSAGES.Default}
+        </p>
+      )}
 
-        {mode === 'reset' && (
-          <div>
-            <label className="label">Current Password</label>
-            <input
-              type="password"
-              className="input"
-              placeholder="Enter password"
-              value={currentPassword}
-              onChange={(e) => setCurrentPassword(e.target.value)}
-            />
-          </div>
-        )}
-
-        <div>
-          <label className="label">{mode === 'reset' ? 'new-Password' : 'Password'}</label>
-          <div className="relative">
-            <input
-              type={showPassword ? 'text' : 'password'}
-              className="input pr-11"
-              placeholder={mode === 'signin' ? 'Enter your password' : 'Enter password'}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword((v) => !v)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-              aria-label="Toggle password visibility"
-            >
-              {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-            </button>
-          </div>
-        </div>
-
-        {mode !== 'signin' && (
-          <div>
-            <label className="label">re-enter Password</label>
-            <input
-              type={showPassword ? 'text' : 'password'}
-              className="input"
-              placeholder="Confirm your password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-            />
-          </div>
-        )}
-
-        {mode === 'signin' && (
-          <div className="flex items-center justify-between text-sm">
-            <label className="flex items-center gap-2 text-gray-600">
-              <input
-                type="checkbox"
-                className="h-4 w-4 rounded border-gray-300 text-royal-600 focus:ring-royal-500"
-                checked={remember}
-                onChange={(e) => setRemember(e.target.checked)}
-              />
-              Remember me
-            </label>
-            <Link href="/reset-password" className="font-medium text-berry-600 hover:text-berry-700">
-              Forgot password?
-            </Link>
-          </div>
-        )}
-
-        {mode === 'signup' && (
-          <label className="flex items-center gap-2 text-sm text-gray-600">
-            <input
-              type="checkbox"
-              className="h-4 w-4 rounded border-gray-300 text-royal-600 focus:ring-royal-500"
-              checked={agreed}
-              onChange={(e) => setAgreed(e.target.checked)}
-            />
-            Agree to Terms &amp; Policies
-          </label>
-        )}
-
-        {mode === 'reset' && (
-          <label className="flex items-center gap-2 text-sm text-gray-600">
-            <input type="checkbox" className="h-4 w-4 rounded border-gray-300 text-royal-600 focus:ring-royal-500" />
-            Remember Me
-          </label>
-        )}
-
-        <button type="submit" className="btn-gradient w-full py-3.5 text-base">
-          {mode === 'signin' ? 'Sign In' : mode === 'signup' ? 'Sign Up' : 'Change Password'}
+      <div className="mt-6 space-y-3">
+        <button
+          type="button"
+          disabled={pending !== null}
+          onClick={() => go('keycloak')}
+          className="btn-gradient flex w-full items-center justify-center gap-2 py-3.5 text-base disabled:opacity-60"
+        >
+          {pending === 'keycloak' ? <Loader2 className="h-4 w-4 animate-spin" /> : <PrimaryIcon className="h-4 w-4" />}
+          {primaryLabel}
         </button>
-      </form>
+        <p className="text-center text-xs text-gray-400">
+          {mode === 'signup'
+            ? 'Passwords need 8–12 characters with upper & lower case, a number and a symbol.'
+            : 'You will be taken to the secure SmartJourney sign-in page.'}
+        </p>
+      </div>
 
       {mode !== 'reset' && (
         <>
@@ -208,14 +127,20 @@ export function AuthCard({ mode }: { mode: Mode }) {
           </div>
           <button
             type="button"
-            onClick={() => {
-              signIn('google-user@gmail.com')
-              router.push('/home')
-            }}
-            className="flex w-full items-center justify-center gap-2 rounded-xl border border-gray-300 bg-white py-3 text-sm font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50"
+            disabled={pending !== null}
+            onClick={() => go('google')}
+            className="flex w-full items-center justify-center gap-2 rounded-xl border border-gray-300 bg-white py-3 text-sm font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50 disabled:opacity-60"
           >
-            <GoogleIcon className="h-4 w-4" /> Google
+            {pending === 'google' ? <Loader2 className="h-4 w-4 animate-spin" /> : <GoogleIcon className="h-4 w-4" />} Google
           </button>
+          {mode === 'signin' && (
+            <p className="mt-5 text-center text-sm text-gray-500">
+              Forgot your password?{' '}
+              <Link href="/reset-password" className="font-medium text-berry-600 hover:text-berry-700">
+                Change it here
+              </Link>
+            </p>
+          )}
         </>
       )}
     </div>

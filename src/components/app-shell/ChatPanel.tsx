@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { Send, Loader2, Paperclip, Sparkles, WifiOff } from 'lucide-react'
 import toast from 'react-hot-toast'
-import { useAuthStore, useChatStore, useItineraryStore } from '@/lib/store'
+import { useSession } from 'next-auth/react'
+import { useChatStore, useItineraryStore } from '@/lib/store'
 import { tripApi } from '@/lib/api'
 import type { PlanTripRequest, PlanTripResponse } from '@/types/trip'
 import { ItineraryPreviewCard } from './ItineraryPreviewCard'
@@ -12,7 +13,7 @@ import { cn } from '@/lib/utils'
 export function ChatPanel() {
   const { threads, activeThreadId, addMessage, createThread, setActiveThread } = useChatStore()
   const addItinerary = useItineraryStore((s) => s.addItinerary)
-  const user = useAuthStore((s) => s.user)
+  const user = useSession().data?.user
   const [input, setInput] = useState('')
   const [isSending, setIsSending] = useState(false)
   const [backendOffline, setBackendOffline] = useState(false)

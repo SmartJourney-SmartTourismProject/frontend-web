@@ -14,8 +14,8 @@ import {
   Settings,
 } from 'lucide-react'
 import { Plane } from 'lucide-react'
-import { useAuthStore } from '@/lib/store'
-import { cn } from '@/lib/utils'
+import { useSession } from 'next-auth/react'
+import { cn, initials } from '@/lib/utils'
 
 const OVERVIEW = [
   { label: 'Dashboard', icon: LayoutGrid, active: true },
@@ -40,7 +40,7 @@ const SYSTEM = [
 ]
 
 export function AdminSidebar() {
-  const user = useAuthStore((s) => s.user)
+  const user = useSession().data?.user
 
   return (
     <aside className="flex h-screen w-64 shrink-0 flex-col bg-royal-900 text-white">
@@ -62,10 +62,10 @@ export function AdminSidebar() {
       <div className="border-t border-white/10 px-5 py-4">
         <div className="flex items-center gap-2.5">
           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-gradient text-xs font-bold">
-            {user?.avatarInitials ?? 'ST'}
+            {initials(user?.name ?? user?.email)}
           </div>
           <div className="min-w-0">
-            <p className="truncate text-sm font-semibold">{user?.username ?? 'Admin'}</p>
+            <p className="truncate text-sm font-semibold">{user?.name ?? user?.email ?? 'Admin'}</p>
             <p className="truncate text-xs text-royal-300">Platform admin</p>
           </div>
         </div>

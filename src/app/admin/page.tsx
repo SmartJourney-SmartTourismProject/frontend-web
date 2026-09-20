@@ -3,8 +3,8 @@
 import { useState } from 'react'
 import { Search, Bell, Users2, Navigation2, HelpCircle, DollarSign, Check, X, Plus, Pencil, Trash2 } from 'lucide-react'
 import { AdminSidebar } from '@/components/admin/AdminSidebar'
-import { useAuthStore } from '@/lib/store'
-import { cn } from '@/lib/utils'
+import { useSession } from 'next-auth/react'
+import { cn, initials } from '@/lib/utils'
 import type { AdminListing, VerificationQueueItem } from '@/types/app'
 
 const WEEKLY = [
@@ -53,7 +53,7 @@ const STATUS_STYLE: Record<AdminListing['status'], string> = {
 }
 
 export default function AdminPage() {
-  const user = useAuthStore((s) => s.user)
+  const user = useSession().data?.user
   const [tab, setTab] = useState<(typeof TABS)[number]>('Attractions')
   const maxValue = Math.max(...WEEKLY.map((d) => d.value))
 
@@ -77,9 +77,9 @@ export default function AdminPage() {
               </button>
               <div className="flex items-center gap-2 rounded-full border border-gray-200 bg-white px-2 py-1">
                 <div className="flex h-7 w-7 items-center justify-center rounded-full bg-brand-gradient text-[11px] font-bold text-white">
-                  {user?.avatarInitials ?? 'ST'}
+                  {initials(user?.name ?? user?.email)}
                 </div>
-                <span className="pr-1 text-sm font-medium text-gray-700">{user?.username ?? 'STT'}</span>
+                <span className="pr-1 text-sm font-medium text-gray-700">{user?.name ?? user?.email ?? 'Admin'}</span>
               </div>
             </div>
           </div>

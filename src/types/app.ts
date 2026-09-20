@@ -1,23 +1,11 @@
 // Types for the parts of the product that don't have a real backend yet
-// (auth, saved itineraries, budget tracker, notifications, subscription, admin).
+// (saved itineraries, budget tracker, notifications, subscription, admin).
 // The AI trip-planning flow (see lib/api.ts `tripApi.planTrip`) is the one
 // feature wired to the real FastAPI service in ai-backend/main.py.
 //
 // Everything here is shaped the way a REST resource would look so that
 // lib/store.ts can be swapped from localStorage persistence to real API
 // calls later without touching the components that consume it.
-
-export interface AppUser {
-  id: string
-  username: string
-  email: string
-  phone?: string
-  avatarInitials: string
-  accountType: 'Traveler account' | 'Platform admin'
-  locationAccessEnabled: boolean
-  passwordLastChangedLabel: string
-  createdAt: string
-}
 
 export type ItineraryStatus = 'in_progress' | 'verified' | 'missing_hotel' | 'draft' | 'past'
 export type ItineraryTab = 'upcoming' | 'drafts' | 'past'
