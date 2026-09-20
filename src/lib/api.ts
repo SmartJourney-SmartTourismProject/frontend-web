@@ -1,4 +1,5 @@
-import axios from 'axios';
+import axios, { type AxiosError } from 'axios';
+import { getSession, signIn } from 'next-auth/react';
 import type {
   Category,
   ChatSession,
@@ -30,6 +31,32 @@ export const api = axios.create({
   // call) per AI_BACKEND_ENDPOINTS.md - matching NestJS's own AI_BACKEND_TIMEOUT_MS.
   timeout: 120_000,
 });
+
+// Every request carries the Keycloak access token from the next-auth session;
+// NestJS validates it against the realm's JWKS. getSession() hits
+// /api/auth/session, which is where the jwt callback (lib/auth.ts) refreshes
+// an expired token - so the token we send is always current.
+api.interceptors.request.use(async (config) => {
+  if (typeof window !== 'undefined') {
+    const session = await getSession();
+    if (session?.access_token) {
+      config.headers.Authorization = `Bearer ${session.access_token}`;
+    }
+  }
+  return config;
+});
+
+// 401 from NestJS means the token was rejected (expired session, logged out
+// elsewhere): send the user through Keycloak again, back to the same page.
+api.interceptors.response.use(
+  (response) => response,
+  (error: AxiosError) => {
+    if (error.response?.status === 401 && typeof window !== 'undefined') {
+      void signIn('keycloak', { callbackUrl: window.location.pathname });
+    }
+    return Promise.reject(error);
+  },
+);
 
 export const chatApi = {
   createSession: (title?: string) =>
