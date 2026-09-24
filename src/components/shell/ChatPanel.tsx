@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { isAxiosError } from 'axios';
 import { Bookmark, BookmarkCheck, Send } from 'lucide-react';
 import { chatApi, tripsApi } from '@/lib/api';
 import { useTripStore } from '@/lib/trip-store';
@@ -10,6 +11,17 @@ interface ChatEntry {
   role: 'user' | 'assistant' | 'error';
   content: string;
   plan?: TripPlanResponse;
+}
+
+/**
+ * A 404 from a chat endpoint means the session id we hold no longer names a
+ * session this user owns. The id is persisted per browser (localStorage, see
+ * trip-store) rather than per account, so it outlives both a sign-out and a
+ * switch to a different user - and a stale one 404s on every request until
+ * something clears it.
+ */
+function isMissingSession(error: unknown): boolean {
+  return isAxiosError(error) && error.response?.status === 404;
 }
 
 const QUICK_ACTIONS = [
@@ -22,6 +34,11 @@ export function ChatPanel() {
   const [entries, setEntries] = useState<ChatEntry[]>([]);
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
+  // Which chat entry's plan the map is currently showing - without this the
+  // map always followed whichever plan arrived LAST, with no way to click
+  // back to an earlier itinerary in the same conversation (e.g. compare the
+  // 3-day and 2-day versions after a "make it 2 days" follow-up).
+  const [selectedPlanIndex, setSelectedPlanIndex] = useState<number | null>(null);
   const logRef = useRef<HTMLDivElement>(null);
 
   const sessionId = useTripStore((s) => s.sessionId);
@@ -48,8 +65,11 @@ export function ChatPanel() {
       // Re-hydrate the map too - without this, switching back to an older
       // session left the map showing whatever the previous session's route
       // was (or nothing, on a fresh page load).
-      const messagesWithPlans = session.chat_message.filter((m) => m.plan);
-      const lastPlan = messagesWithPlans.at(-1)?.plan;
+      const lastPlanIndex = session.chat_message.reduce(
+        (acc, m, idx) => (m.plan ? idx : acc),
+        -1,
+      );
+      const lastPlan = lastPlanIndex >= 0 ? session.chat_message[lastPlanIndex].plan : undefined;
       if (lastPlan) {
         setPlan({
           itinerary: lastPlan.itinerary,
@@ -57,12 +77,28 @@ export function ChatPanel() {
           estimatedCost: lastPlan.estimated_cost,
           currency: lastPlan.currency,
         });
+        setSelectedPlanIndex(lastPlanIndex);
+      } else {
+        setSelectedPlanIndex(null);
       }
+    }).catch((error) => {
+      if (cancelled) return;
+      // Without this the rejection was unhandled and the bad id stayed in
+      // localStorage, so every later message 404'd too, with no way for the
+      // user to recover short of clearing site data.
+      if (isMissingSession(error)) {
+        setSessionId(null);
+        setEntries([]);
+        return;
+      }
+      setEntries([
+        { role: 'error', content: 'Could not load this conversation. Please try again.' },
+      ]);
     });
     return () => {
       cancelled = true;
     };
-  }, [sessionId, setPlan]);
+  }, [sessionId, setPlan, setSessionId]);
 
   useEffect(() => {
     logRef.current?.scrollTo({ top: logRef.current.scrollHeight, behavior: 'smooth' });
@@ -85,12 +121,26 @@ export function ChatPanel() {
         bumpSessionsVersion();
       }
 
-      const plan = await chatApi.sendMessage(activeSessionId, trimmed);
+      let plan: TripPlanResponse;
+      try {
+        plan = await chatApi.sendMessage(activeSessionId, trimmed);
+      } catch (error) {
+        if (!isMissingSession(error)) throw error;
+        // Stale id: open a fresh session and send the same message again,
+        // rather than stranding the user on a conversation that no longer
+        // exists.
+        const session = await chatApi.createSession(trimmed.slice(0, 60));
+        activeSessionId = session.id;
+        setSessionId(activeSessionId);
+        bumpSessionsVersion();
+        plan = await chatApi.sendMessage(activeSessionId, trimmed);
+      }
 
-      setEntries((prev) => [
-        ...prev,
-        { role: 'assistant', content: plan.final_response ?? '(no response)', plan },
-      ]);
+      setEntries((prev) => {
+        const next = [...prev, { role: 'assistant' as const, content: plan.final_response ?? '(no response)', plan }];
+        if (plan.itinerary.length > 0) setSelectedPlanIndex(next.length - 1);
+        return next;
+      });
       if (plan.itinerary.length > 0) {
         setPlan({
           itinerary: plan.itinerary,
@@ -138,7 +188,19 @@ export function ChatPanel() {
               >
                 {entry.content}
                 {entry.plan && entry.plan.itinerary.length > 0 && (
-                  <ItinerarySummary plan={entry.plan} />
+                  <ItinerarySummary
+                    plan={entry.plan}
+                    isSelected={selectedPlanIndex === i}
+                    onSelect={() => {
+                      setSelectedPlanIndex(i);
+                      setPlan({
+                        itinerary: entry.plan!.itinerary,
+                        destination: entry.plan!.destination,
+                        estimatedCost: entry.plan!.estimated_cost,
+                        currency: entry.plan!.currency,
+                      });
+                    }}
+                  />
                 )}
               </div>
             </div>
@@ -187,7 +249,15 @@ export function ChatPanel() {
   );
 }
 
-function ItinerarySummary({ plan }: { plan: TripPlanResponse }) {
+function ItinerarySummary({
+  plan,
+  isSelected,
+  onSelect,
+}: {
+  plan: TripPlanResponse;
+  isSelected: boolean;
+  onSelect: () => void;
+}) {
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
 
   const handleSave = async () => {
@@ -219,13 +289,25 @@ function ItinerarySummary({ plan }: { plan: TripPlanResponse }) {
   };
 
   return (
-    <div className="mt-3 overflow-hidden rounded-xl border border-gray-200 bg-white text-gray-900">
-      <div className="flex items-center justify-between bg-brand-600 px-3 py-2 text-xs font-semibold text-white">
+    <div
+      className={`mt-3 overflow-hidden rounded-xl border bg-white text-gray-900 ${
+        isSelected ? 'border-brand-500 ring-2 ring-brand-200' : 'border-gray-200'
+      }`}
+    >
+      <button
+        type="button"
+        onClick={onSelect}
+        title={isSelected ? 'Shown on the map' : 'Show this itinerary on the map'}
+        className="flex w-full items-center justify-between bg-brand-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-brand-700"
+      >
         <span>
           {plan.destination ?? 'Trip'} · {plan.itinerary.length} day{plan.itinerary.length > 1 ? 's' : ''}
         </span>
-        <span className="rounded-full bg-white/20 px-2 py-0.5">{plan.plan_source ?? 'plan'}</span>
-      </div>
+        <span className="flex items-center gap-1.5">
+          {isSelected && <span className="text-[10px] font-normal text-white/80">on map</span>}
+          <span className="rounded-full bg-white/20 px-2 py-0.5">{plan.plan_source ?? 'plan'}</span>
+        </span>
+      </button>
       <ul className="divide-y divide-gray-100">
         {plan.itinerary.map((day) => (
           <li key={day.day} className="px-3 py-2">

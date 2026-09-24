@@ -50,7 +50,12 @@ export function RouteMapPanel() {
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
-    const map = L.map(containerRef.current).setView([7.8731, 80.7718], 8); // Sri Lanka
+    // zoomControl: false + a manual bottom-left control - the default
+    // top-left position sits right under the Home page's map-toggle button
+    // (`absolute top-4 z-10` in page.tsx), which rendered on top of it and
+    // made the +/- buttons unclickable/invisible behind that button.
+    const map = L.map(containerRef.current, { zoomControl: false }).setView([7.8731, 80.7718], 8); // Sri Lanka
+    L.control.zoom({ position: 'bottomleft' }).addTo(map);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; OpenStreetMap contributors',
       maxZoom: 18,
