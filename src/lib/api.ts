@@ -2,6 +2,7 @@ import axios, { type AxiosError } from 'axios';
 import { getSession, signIn } from 'next-auth/react';
 import type {
   AdminActivity,
+  AdminAnalytics,
   AdminEvent,
   AdminListing,
   AdminStats,
@@ -115,14 +116,25 @@ export const exploreApi = {
 export const adminApi = {
   stats: () => api.get<AdminStats>('/admin/stats').then((r) => r.data),
 
+  analytics: () => api.get<AdminAnalytics>('/admin/analytics').then((r) => r.data),
+
   listings: (query: ModerationQuery = {}) =>
     api.get<Paginated<AdminListing>>('/admin/listings', { params: query }).then((r) => r.data),
+  createListing: (body: Record<string, unknown>) =>
+    api.post<AdminListing>('/admin/listings', body).then((r) => r.data),
+  updateListing: (id: string, body: Record<string, unknown>) =>
+    api.patch<AdminListing>(`/admin/listings/${id}`, body).then((r) => r.data),
   verifyListing: (id: string) =>
     api.post<AdminListing>(`/admin/listings/${id}/verify`).then((r) => r.data),
   rejectListing: (id: string, reason?: string) =>
     api.post<AdminListing>(`/admin/listings/${id}/reject`, { reason }).then((r) => r.data),
   deleteListing: (id: string) =>
     api.delete<{ deleted: true }>(`/admin/listings/${id}`).then((r) => r.data),
+
+  createEvent: (body: Record<string, unknown>) =>
+    api.post<AdminEvent>('/admin/events', body).then((r) => r.data),
+  updateEvent: (id: string, body: Record<string, unknown>) =>
+    api.patch<AdminEvent>(`/admin/events/${id}`, body).then((r) => r.data),
 
   events: (query: ModerationQuery = {}) =>
     api.get<Paginated<AdminEvent>>('/admin/events', { params: query }).then((r) => r.data),

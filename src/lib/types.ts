@@ -175,6 +175,24 @@ export interface AdminActivity {
   created_at: string;
 }
 
+export interface AdminAnalytics {
+  range: { from: string; days: number };
+  trends: {
+    itineraries: { day: string; count: number }[];
+    chat_sessions: { day: string; count: number }[];
+    signups: { day: string; count: number }[];
+    moderation: { day: string; approved: number; rejected: number }[];
+  };
+  breakdowns: {
+    listings_by_category: { label: string; count: number }[];
+    listings_by_district: { label: string; count: number }[];
+    itinerary_status: { label: string; count: number }[];
+    top_planners: { label: string; count: number }[];
+  };
+  /** null while subscriptions are out of scope - see SRS §3.1.14. */
+  subscription_revenue: number | null;
+}
+
 export interface Paginated<T> {
   items: T[];
   page: number;
