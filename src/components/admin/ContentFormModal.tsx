@@ -36,6 +36,11 @@ export function ContentFormModal({
   const [districts, setDistricts] = useState<District[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [tagOptions, setTagOptions] = useState<Tag[]>([]);
+  // District and category are required <select>s whose options arrive from the
+  // API. Submitting before they land leaves them empty, and the browser then
+  // blocks the submit by focusing the field - with no message the user can act
+  // on, so the save looks like it simply did nothing. Gate the button instead.
+  const [refDataLoaded, setRefDataLoaded] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -61,6 +66,7 @@ export function ContentFormModal({
         setDistricts(d);
         setCategories(c);
         setTagOptions(t);
+        setRefDataLoaded(true);
       })
       .catch(() => setError('Could not load districts, categories and tags.'));
   }, []);
@@ -306,10 +312,11 @@ export function ContentFormModal({
           </button>
           <button
             type="submit"
-            disabled={saving}
+            disabled={saving || !refDataLoaded}
+            title={!refDataLoaded ? 'Loading districts and categories…' : undefined}
             className="flex items-center gap-2 rounded-xl bg-brand-gradient px-5 py-2 text-sm font-bold text-white hover:opacity-90 disabled:opacity-60"
           >
-            {saving && <Loader2 className="h-4 w-4 animate-spin" />}
+            {(saving || !refDataLoaded) && <Loader2 className="h-4 w-4 animate-spin" />}
             {isEdit ? 'Save changes' : 'Create'}
           </button>
         </footer>
