@@ -2,8 +2,9 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, CalendarDays, LayoutGrid, MapPinned, Users } from 'lucide-react';
+import { ArrowLeft, BarChart3, CalendarDays, LayoutGrid, MapPinned, Users } from 'lucide-react';
 import { adminApi } from '@/lib/api';
+import { AnalyticsPanel } from '@/components/admin/AnalyticsPanel';
 import { ModerationPanel } from '@/components/admin/ModerationPanel';
 import { UsersPanel } from '@/components/admin/UsersPanel';
 import type { AdminStats } from '@/lib/types';
@@ -11,12 +12,13 @@ import type { AdminStats } from '@/lib/types';
 // Reaching this page at all requires the Keycloak realm role `admin`:
 // middleware.ts checks it before the page renders, and every /admin API route
 // re-checks it server-side, so the UI is a convenience, not the control.
-type Tab = 'listings' | 'events' | 'users';
+type Tab = 'listings' | 'events' | 'users' | 'analytics';
 
 const TABS: { id: Tab; label: string; icon: typeof LayoutGrid }[] = [
   { id: 'listings', label: 'Listings', icon: MapPinned },
   { id: 'events', label: 'Events', icon: CalendarDays },
   { id: 'users', label: 'Users', icon: Users },
+  { id: 'analytics', label: 'Analytics', icon: BarChart3 },
 ];
 
 export default function AdminPage() {
@@ -96,9 +98,9 @@ export default function AdminPage() {
         </nav>
 
         <section className="py-6">
-          {tab === 'users' ? (
-            <UsersPanel onChanged={loadStats} />
-          ) : (
+          {tab === 'analytics' && <AnalyticsPanel />}
+          {tab === 'users' && <UsersPanel onChanged={loadStats} />}
+          {(tab === 'listings' || tab === 'events') && (
             <ModerationPanel key={tab} kind={tab} onChanged={loadStats} />
           )}
         </section>
