@@ -115,6 +115,74 @@ export interface Me {
   preferences: UserPreferences;
 }
 
+/** Admin moderation state, derived server-side from (is_verified, is_active). */
+export type ModerationState = 'pending' | 'approved' | 'rejected';
+
+export interface AdminStats {
+  users: { travelers: number; admins: number; total: number };
+  itineraries: number;
+  chat_sessions: number;
+  listings: { pending: number; approved: number };
+  events: { pending: number; approved: number };
+  pending_verifications: number;
+}
+
+export interface AdminListing extends Listing {
+  state: ModerationState;
+  is_verified: boolean;
+  is_active: boolean;
+  source: string;
+  created_at: string;
+}
+
+export interface AdminEvent extends ExploreEvent {
+  state: ModerationState;
+  is_verified: boolean;
+  is_active: boolean;
+  source: string;
+}
+
+export interface AdminUser {
+  id: string;
+  email: string;
+  name: string | null;
+  phone: string | null;
+  role: 'traveler' | 'admin';
+  is_active: boolean;
+  email_verified: boolean;
+  location_enabled: boolean;
+  created_at: string;
+  updated_at: string;
+  /** false for rows that predate Keycloak (the seeded demo user) - role and
+   *  status cannot be changed for those, because there is no account to change. */
+  managed: boolean;
+  _count?: { itinerary: number; chat_session: number };
+}
+
+export interface AdminActivity {
+  id: string;
+  user_id: string | null;
+  action: string;
+  detail: Record<string, unknown> | null;
+  created_at: string;
+}
+
+export interface Paginated<T> {
+  items: T[];
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+}
+
+export interface ModerationQuery {
+  status?: ModerationState;
+  district?: string;
+  category?: string;
+  q?: string;
+  page?: number;
+}
+
 export interface UpdateMePayload {
   phone?: string | null;
   location_enabled?: boolean;
