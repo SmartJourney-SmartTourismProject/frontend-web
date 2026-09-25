@@ -34,8 +34,13 @@ export default function HomePage() {
       <button
         onClick={() => setMapOpen((v) => !v)}
         title={mapOpen ? 'Hide map' : 'Show map'}
-        className="absolute top-4 z-10 flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-600 shadow-md transition-[right] duration-300 ease-in-out hover:bg-gray-50"
-        style={{ right: mapOpen ? 'calc(50% - 18px)' : '16px' }}
+        // Leaflet's own panes/controls (.leaflet-control-container) use
+        // z-index up to 1000, and neither this row nor RouteMapPanel's
+        // wrapper establishes an isolating stacking context - so a plain
+        // z-10 here lost directly to the map and rendered invisibly behind
+        // it. z-[1100] clears Leaflet's own stack.
+        className="absolute top-4 z-[1100] flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-600 shadow-md transition-[left,right] duration-300 ease-in-out hover:bg-gray-50"
+        style={mapOpen ? { left: 'calc(50% + 12px)' } : { right: '16px' }}
       >
         {mapOpen ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
       </button>
