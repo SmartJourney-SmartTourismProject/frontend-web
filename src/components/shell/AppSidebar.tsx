@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Compass, Wallet, Calendar, Plus, Search, Settings, Plane, LogOut, Trash2 } from 'lucide-react';
+import { Compass, Wallet, Calendar, Plus, Search, Settings, Plane, LogOut, ShieldCheck } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { signOutEverywhere } from '@/lib/auth-client';
 import { initials } from '@/lib/initials';
@@ -18,6 +19,10 @@ const NAV_ITEMS = [
   { label: 'Saved itineraries', href: '/saved-itineraries', icon: Calendar },
   { label: 'Budget tracker', href: '/budget-tracker', icon: Wallet },
 ];
+
+// Only rendered for holders of the Keycloak realm role `admin`; the route
+// itself is gated by middleware.ts and every /admin API route re-checks.
+const ADMIN_ITEM = { label: 'Admin', href: '/admin', icon: ShieldCheck };
 
 export function AppSidebar() {
   const router = useRouter();
@@ -92,7 +97,7 @@ export function AppSidebar() {
       </div>
 
       <nav className="mt-4 flex flex-col gap-1 px-4">
-        {NAV_ITEMS.map(({ label, href, icon: Icon }) => {
+        {[...NAV_ITEMS, ...(isAdmin ? [ADMIN_ITEM] : [])].map(({ label, href, icon: Icon }) => {
           const active = pathname === href;
           return (
             <Link
