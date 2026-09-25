@@ -11,6 +11,12 @@ interface ChatEntry {
   role: 'user' | 'assistant' | 'error';
   content: string;
   plan?: TripPlanResponse;
+  // The chat_message this entry was persisted as, and whether it's already
+  // been saved as a trip - both needed so the itinerary card's save button
+  // can survive a refresh instead of resetting to "Save itinerary" every
+  // time (see ItinerarySummary).
+  chatMessageId?: string;
+  savedTripId?: string | null;
 }
 
 /**
@@ -60,6 +66,8 @@ export function ChatPanel() {
           role: m.role,
           content: m.content,
           plan: m.plan ?? undefined,
+          chatMessageId: m.id,
+          savedTripId: m.saved_trip_id,
         })),
       );
       // Re-hydrate the map too - without this, switching back to an older
@@ -137,7 +145,16 @@ export function ChatPanel() {
       }
 
       setEntries((prev) => {
-        const next = [...prev, { role: 'assistant' as const, content: plan.final_response ?? '(no response)', plan }];
+        const next = [
+          ...prev,
+          {
+            role: 'assistant' as const,
+            content: plan.final_response ?? '(no response)',
+            plan,
+            chatMessageId: plan.chat_message_id,
+            savedTripId: null,
+          },
+        ];
         if (plan.itinerary.length > 0) setSelectedPlanIndex(next.length - 1);
         return next;
       });
@@ -190,6 +207,8 @@ export function ChatPanel() {
                 {entry.plan && entry.plan.itinerary.length > 0 && (
                   <ItinerarySummary
                     plan={entry.plan}
+                    chatMessageId={entry.chatMessageId}
+                    initialSavedTripId={entry.savedTripId}
                     isSelected={selectedPlanIndex === i}
                     onSelect={() => {
                       setSelectedPlanIndex(i);
@@ -251,40 +270,62 @@ export function ChatPanel() {
 
 function ItinerarySummary({
   plan,
+  chatMessageId,
+  initialSavedTripId,
   isSelected,
   onSelect,
 }: {
   plan: TripPlanResponse;
+  chatMessageId?: string;
+  initialSavedTripId?: string | null;
   isSelected: boolean;
   onSelect: () => void;
 }) {
-  const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  // savedTripId is the source of truth for whether this card is saved -
+  // seeded from the backend (which tracks it via chat_message_id) so a
+  // refresh doesn't forget it and let the same itinerary be saved twice.
+  const [savedTripId, setSavedTripId] = useState<string | null>(initialSavedTripId ?? null);
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState(false);
 
-  const handleSave = async () => {
-    if (saveState === 'saving' || saveState === 'saved') return;
-    setSaveState('saving');
-    const payload: SaveTripPayload = {
-      destination: plan.destination ?? undefined,
-      estimated_cost: plan.estimated_cost ?? undefined,
-      currency: plan.currency,
-      itinerary: plan.itinerary.map((day) => ({
-        day: day.day,
-        date: day.date,
-        items: day.items.map((item) => ({
-          time: item.time,
-          type: item.type,
-          name: item.name,
-          notes: item.notes,
-          lat: item.lat,
-          lon: item.lon,
-        })),
-      })),
-    };
+  useEffect(() => {
+    setSavedTripId(initialSavedTripId ?? null);
+  }, [initialSavedTripId, chatMessageId]);
+
+  const handleToggleSave = async () => {
+    if (pending) return;
+    setPending(true);
+    setError(false);
     try {
-      await tripsApi.save(payload);
-      setSaveState('saved');
+      if (savedTripId) {
+        await tripsApi.remove(savedTripId);
+        setSavedTripId(null);
+      } else {
+        const payload: SaveTripPayload = {
+          chat_message_id: chatMessageId,
+          destination: plan.destination ?? undefined,
+          estimated_cost: plan.estimated_cost ?? undefined,
+          currency: plan.currency,
+          itinerary: plan.itinerary.map((day) => ({
+            day: day.day,
+            date: day.date,
+            items: day.items.map((item) => ({
+              time: item.time,
+              type: item.type,
+              name: item.name,
+              notes: item.notes,
+              lat: item.lat,
+              lon: item.lon,
+            })),
+          })),
+        };
+        const trip = await tripsApi.save(payload);
+        setSavedTripId(trip.id);
+      }
     } catch {
-      setSaveState('error');
+      setError(true);
+    } finally {
+      setPending(false);
     }
   };
 
@@ -343,25 +384,26 @@ function ItinerarySummary({
             : ''}
         </span>
         <button
-          onClick={handleSave}
-          disabled={saveState === 'saving' || saveState === 'saved'}
+          onClick={handleToggleSave}
+          disabled={pending}
+          title={savedTripId ? 'Remove from saved itineraries' : 'Save itinerary'}
           className={`flex items-center gap-1 rounded-full px-2.5 py-1 font-medium transition ${
-            saveState === 'saved'
-              ? 'bg-emerald-50 text-emerald-600'
-              : saveState === 'error'
-                ? 'bg-red-50 text-red-600'
+            error
+              ? 'bg-red-50 text-red-600'
+              : savedTripId
+                ? 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'
                 : 'bg-brand-50 text-brand-700 hover:bg-brand-100'
           }`}
         >
-          {saveState === 'saved' ? (
+          {error ? (
+            'Failed — retry'
+          ) : savedTripId ? (
             <>
-              <BookmarkCheck className="h-3.5 w-3.5" /> Saved
+              <BookmarkCheck className="h-3.5 w-3.5" /> {pending ? 'Removing…' : 'Saved'}
             </>
-          ) : saveState === 'error' ? (
-            'Save failed — retry'
           ) : (
             <>
-              <Bookmark className="h-3.5 w-3.5" /> {saveState === 'saving' ? 'Saving…' : 'Save itinerary'}
+              <Bookmark className="h-3.5 w-3.5" /> {pending ? 'Saving…' : 'Save itinerary'}
             </>
           )}
         </button>

@@ -43,12 +43,12 @@ export function SettingsModal({
       // stacking context - so a lower z-index here gets painted over by the
       // map wherever it occupies screen space. z-[1000] guarantees this
       // always wins regardless of what else is on the page.
-      className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/40 p-4"
+      className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
       role="presentation"
       onMouseDown={onClose}
     >
       <div
-        className="flex h-[640px] w-full max-w-4xl overflow-hidden rounded-3xl bg-white shadow-2xl"
+        className="flex h-[720px] w-full max-w-5xl overflow-hidden rounded-3xl bg-white shadow-2xl"
         role="dialog"
         aria-modal="true"
         aria-labelledby="settings-title"
@@ -80,8 +80,8 @@ export function SettingsModal({
           </div>
         </aside>
 
-        <section className="flex-1 overflow-y-auto">
-          <div className="flex items-start justify-between border-b border-gray-100 px-8 py-6">
+        <section className="flex flex-1 flex-col overflow-hidden">
+          <div className="flex shrink-0 items-start justify-between border-b border-gray-100 px-8 py-6">
             <div>
               <h2 id="settings-title" className="font-serif text-2xl font-semibold text-gray-900">
                 {meta.title}
@@ -97,7 +97,7 @@ export function SettingsModal({
             </button>
           </div>
 
-          <div className="px-8 py-6">
+          <div className="flex-1 overflow-y-auto px-8 py-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {activeTab === 'account' && <AccountTab />}
             {activeTab === 'subscription' && <SubscriptionTab />}
             {activeTab === 'notifications' && <NotificationsTab />}
