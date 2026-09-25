@@ -24,6 +24,14 @@ const logoutEndpoint = `${issuer}/protocol/openid-connect/logout`;
 // a token that expires in transit.
 const REFRESH_SKEW_SECONDS = 30;
 
+// openid-client (inside next-auth) defaults to a 3500ms timeout on its calls
+// to Keycloak - including the discovery document fetched on every sign-in.
+// A Keycloak container that has been idle is slow on its first request (JVM
+// warm-up), which blew that budget and surfaced as a generic "OAuthSignin"
+// error on the login page. Warm responses are ~100ms, so this only affects
+// the cold case.
+const KEYCLOAK_HTTP_TIMEOUT_MS = 15000;
+
 // Roles every Keycloak realm assigns automatically; not meaningful to the app.
 const KEYCLOAK_BUILTIN_ROLES = new Set(['offline_access', 'uma_authorization', 'default-roles-smartjourney']);
 
@@ -116,7 +124,12 @@ export function keycloakLogoutUrl(idToken: string | undefined, postLogoutRedirec
   return `${logoutEndpoint}?${params.toString()}`;
 }
 
-const keycloak = KeycloakProvider({ clientId, clientSecret, issuer });
+const keycloak = KeycloakProvider({
+  clientId,
+  clientSecret,
+  issuer,
+  httpOptions: { timeout: KEYCLOAK_HTTP_TIMEOUT_MS },
+});
 
 // Same client, but the browser lands on Keycloak's registration form instead
 // of the login form. Keycloak exposes that as a separate authorize endpoint
@@ -136,6 +149,7 @@ const keycloakRegister: typeof keycloak = {
   token: tokenEndpoint,
   userinfo: `${issuer}/protocol/openid-connect/userinfo`,
   jwks_endpoint: `${issuer}/protocol/openid-connect/certs`,
+  httpOptions: { timeout: KEYCLOAK_HTTP_TIMEOUT_MS },
 };
 
 export const authOptions: NextAuthOptions = {
