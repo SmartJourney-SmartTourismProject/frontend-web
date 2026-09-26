@@ -1,9 +1,10 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { Check, Loader2, MapPin, Search, Trash2, X } from 'lucide-react';
+import { Check, Loader2, MapPin, Pencil, Plus, Search, Trash2, X } from 'lucide-react';
 import { adminApi, exploreApi } from '@/lib/api';
-import type { AdminEvent, AdminListing, District, ModerationState } from '@/lib/types';
+import type { AdminEvent, AdminListing, Category, District, ModerationState } from '@/lib/types';
+import { ContentFormModal } from './ContentFormModal';
 
 type Kind = 'listings' | 'events';
 type Row = AdminListing | AdminEvent;
@@ -35,6 +36,12 @@ export function ModerationPanel({ kind, onChanged }: { kind: Kind; onChanged: ()
   const [status, setStatus] = useState<ModerationState | 'all'>('pending');
   const [districts, setDistricts] = useState<District[]>([]);
   const [district, setDistrict] = useState('');
+  // SRS §3.1.11 names attractions and restaurants separately; they are one
+  // table with a category, so the split is a filter rather than extra tabs.
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [category, setCategory] = useState('');
+  const [editing, setEditing] = useState<Row | null>(null);
+  const [creating, setCreating] = useState(false);
   const [query, setQuery] = useState('');
   const [rows, setRows] = useState<Row[]>([]);
   const [total, setTotal] = useState(0);
@@ -44,7 +51,10 @@ export function ModerationPanel({ kind, onChanged }: { kind: Kind; onChanged: ()
 
   useEffect(() => {
     exploreApi.getDistricts().then(setDistricts).catch(() => setDistricts([]));
-  }, []);
+    if (kind === 'listings') {
+      exploreApi.getCategories().then(setCategories).catch(() => setCategories([]));
+    }
+  }, [kind]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -53,6 +63,7 @@ export function ModerationPanel({ kind, onChanged }: { kind: Kind; onChanged: ()
       const params = {
         ...(status !== 'all' && { status }),
         ...(district && { district }),
+        ...(category && kind === 'listings' && { category }),
         ...(query.trim() && { q: query.trim() }),
       };
       const res = kind === 'listings' ? await adminApi.listings(params) : await adminApi.events(params);
@@ -63,7 +74,7 @@ export function ModerationPanel({ kind, onChanged }: { kind: Kind; onChanged: ()
     } finally {
       setLoading(false);
     }
-  }, [kind, status, district, query]);
+  }, [kind, status, district, category, query]);
 
   useEffect(() => {
     // Debounced so typing in the search box doesn't fire a request per keystroke.
@@ -123,6 +134,21 @@ export function ModerationPanel({ kind, onChanged }: { kind: Kind; onChanged: ()
               className="w-52 rounded-xl border border-gray-300 py-2 pl-9 pr-3 text-sm focus:border-brand-500 focus:outline-none"
             />
           </div>
+          {kind === 'listings' && (
+            <select
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              className="rounded-xl border border-gray-300 px-3 py-2 text-sm capitalize focus:border-brand-500 focus:outline-none"
+              aria-label="Filter by category"
+            >
+              <option value="">All categories</option>
+              {categories.map((c) => (
+                <option key={c.id} value={c.id} className="capitalize">
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          )}
           <select
             value={district}
             onChange={(e) => setDistrict(e.target.value)}
@@ -136,6 +162,13 @@ export function ModerationPanel({ kind, onChanged }: { kind: Kind; onChanged: ()
               </option>
             ))}
           </select>
+          <button
+            type="button"
+            onClick={() => setCreating(true)}
+            className="flex items-center gap-1.5 rounded-xl bg-brand-gradient px-3 py-2 text-sm font-semibold text-white hover:opacity-90"
+          >
+            <Plus className="h-4 w-4" /> Add {kind === 'listings' ? 'listing' : 'event'}
+          </button>
         </div>
       </div>
 
@@ -187,6 +220,14 @@ export function ModerationPanel({ kind, onChanged }: { kind: Kind; onChanged: ()
               </div>
 
               <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setEditing(row)}
+                  disabled={busyId === row.id}
+                  className="flex items-center gap-1 rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-semibold text-gray-700 transition hover:bg-gray-50 disabled:opacity-60"
+                >
+                  <Pencil className="h-3 w-3" /> Edit
+                </button>
                 {row.state !== 'approved' && (
                   <button
                     type="button"
@@ -223,6 +264,21 @@ export function ModerationPanel({ kind, onChanged }: { kind: Kind; onChanged: ()
           ))}
         </ul>
       </div>
+
+      {(creating || editing) && (
+        <ContentFormModal
+          kind={kind}
+          editing={editing}
+          onClose={() => {
+            setCreating(false);
+            setEditing(null);
+          }}
+          onSaved={() => {
+            void load();
+            onChanged();
+          }}
+        />
+      )}
     </div>
   );
 }

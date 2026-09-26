@@ -1,10 +1,10 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { Loader2, Search, ShieldCheck, ShieldOff, UserCheck, UserX } from 'lucide-react';
+import { History, Loader2, Search, ShieldCheck, ShieldOff, UserCheck, UserX, X } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { adminApi } from '@/lib/api';
-import type { AdminUser } from '@/lib/types';
+import type { AdminActivity, AdminUser } from '@/lib/types';
 
 /**
  * Role and account status are Keycloak's, not ours: PATCH /admin/users/:id
@@ -22,6 +22,9 @@ export function UsersPanel({ onChanged }: { onChanged: () => void }) {
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // SRS §3.1.13: "monitor account activities".
+  const [activityFor, setActivityFor] = useState<AdminUser | null>(null);
+  const [activity, setActivity] = useState<AdminActivity[] | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -158,6 +161,17 @@ export function UsersPanel({ onChanged }: { onChanged: () => void }) {
                   {busyId === user.id && <Loader2 className="h-4 w-4 animate-spin text-gray-400" />}
                   <button
                     type="button"
+                    onClick={() => {
+                      setActivityFor(user);
+                      setActivity(null);
+                      adminApi.userActivity(user.id).then(setActivity).catch(() => setActivity([]));
+                    }}
+                    className="flex items-center gap-1 rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-semibold text-gray-700 transition hover:bg-gray-50"
+                  >
+                    <History className="h-3 w-3" /> Activity
+                  </button>
+                  <button
+                    type="button"
                     disabled={busyId === user.id || locked}
                     title={locked ? lockReason : undefined}
                     onClick={() => patch(user, { role: user.role === 'admin' ? 'traveler' : 'admin' })}
@@ -186,6 +200,54 @@ export function UsersPanel({ onChanged }: { onChanged: () => void }) {
           })}
         </ul>
       </div>
+
+      {activityFor && (
+        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-4 sm:p-8">
+          <section className="w-full max-w-xl rounded-2xl bg-white p-6 shadow-xl">
+            <header className="mb-4 flex items-start justify-between">
+              <div>
+                <h2 className="font-serif text-xl font-semibold text-brand-700">Account activity</h2>
+                <p className="mt-0.5 text-xs text-gray-500">
+                  {activityFor.name ?? activityFor.email} · most recent 100 entries
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setActivityFor(null)}
+                aria-label="Close"
+                className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </header>
+
+            {activity === null && <p className="py-8 text-center text-sm text-gray-400">Loading…</p>}
+            {activity?.length === 0 && (
+              <p className="py-8 text-center text-sm text-gray-500">
+                Nothing recorded for this account yet. Entries appear when the user (or an admin acting on them)
+                performs an audited action.
+              </p>
+            )}
+            {activity && activity.length > 0 && (
+              <ul className="max-h-96 divide-y divide-gray-100 overflow-auto">
+                {activity.map((a) => (
+                  <li key={a.id} className="py-2.5">
+                    <div className="flex items-baseline justify-between gap-3">
+                      <code className="text-xs font-semibold text-gray-900">{a.action}</code>
+                      <time className="shrink-0 text-xs text-gray-400" dateTime={a.created_at}>
+                        {new Date(a.created_at).toLocaleString()}
+                      </time>
+                    </div>
+                    {a.detail && (
+                      <p className="mt-0.5 break-all text-xs text-gray-500">{JSON.stringify(a.detail)}</p>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        </div>
+      )}
     </div>
   );
 }
