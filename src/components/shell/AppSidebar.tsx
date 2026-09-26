@@ -3,8 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { Compass, Wallet, Calendar, Plus, Search, Settings, Plane, LogOut, Trash2 } from 'lucide-react';
-import { Compass, Wallet, Calendar, Plus, Search, Settings, Plane, LogOut, ShieldCheck } from 'lucide-react';
+import { Compass, Wallet, Calendar, Plus, Search, Settings, Plane, LogOut, Trash2, ShieldCheck } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { signOutEverywhere } from '@/lib/auth-client';
 import { initials } from '@/lib/initials';
