@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, new-main]
   pull_request:
 
 # Unit-only: no NestJS/FastAPI/Keycloak backing services and no .env secrets
