@@ -1,0 +1,23 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Unit-only: no NestJS/FastAPI/Keycloak backing services and no .env secrets
+# needed for lint + Vitest/RTL. Playwright's e2e/journey.spec.ts needs the
+# full local stack (RUNNING.md) and is intentionally not run here - see
+# Documentation/Testing/MASTER_TEST_PLAN.md.
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test
