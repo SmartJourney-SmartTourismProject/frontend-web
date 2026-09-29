@@ -91,8 +91,10 @@ export const chatApi = {
   renameSession: (id: string, title: string) =>
     api.patch<ChatSession>(`/chat/sessions/${id}`, { title }).then((r) => r.data),
 
-  deleteSession: (id: string) =>
-    api.delete<{ deleted: true }>(`/chat/sessions/${id}`).then((r) => r.data),
+  deleteSession: (id: string, deleteSaved?: boolean) =>
+    api
+      .delete<{ deleted: true }>(`/chat/sessions/${id}`, { params: { deleteSaved } })
+      .then((r) => r.data),
 };
 
 export const exploreApi = {

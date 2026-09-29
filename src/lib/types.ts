@@ -24,6 +24,10 @@ export interface ChatMessage {
   // the itinerary summary card be rebuilt after a reload/session switch
   // instead of only showing the rendered text.
   plan: TripPlanResponse | null;
+  // Set when this message's plan has already been saved as a trip - lets the
+  // chat card show "Saved" (and offer unsave) after a reload instead of
+  // resetting to "Save itinerary" and allowing a duplicate save.
+  saved_trip_id: string | null;
 }
 
 export interface ChatSessionWithMessages extends ChatSession {
@@ -64,6 +68,10 @@ export interface TripPlanResponse {
   final_response: string | null;
   errors: string[];
   trace: Record<string, unknown>;
+  // Present on the response to POST /chat/sessions/:id/messages - the id of
+  // the assistant chat_message this plan was persisted as. Passed back on
+  // save so the trip can be linked to it (see SaveTripPayload).
+  chat_message_id?: string;
 }
 
 export interface District {
@@ -256,6 +264,9 @@ export type TripStatus = 'draft' | 'upcoming' | 'past';
 
 export interface SaveTripPayload {
   title?: string;
+  // Links the saved trip back to the chat message it was rendered from, so
+  // re-saving the same itinerary card is a no-op instead of a duplicate.
+  chat_message_id?: string;
   destination?: string;
   travelers?: number;
   budget?: number;
