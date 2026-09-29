@@ -1,9 +1,10 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { useState } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Map as MapIcon, PanelRightClose } from 'lucide-react';
 import { ChatPanel } from '@/components/shell/ChatPanel';
+import { SplitPane } from '@/components/shell/SplitPane';
 
 // Leaflet touches `window` at import time, which breaks SSR/build - loaded
 // client-only, same as any Leaflet usage in a Next.js app.
@@ -12,37 +13,51 @@ const RouteMapPanel = dynamic(
   { ssr: false },
 );
 
+const MAP_OPEN_KEY = 'sj.map.open';
+
 export default function HomePage() {
   const [mapOpen, setMapOpen] = useState(true);
 
-  return (
-    <div className="relative flex h-full overflow-hidden">
-      <div className="flex-1 border-r border-gray-100">
-        <ChatPanel />
-      </div>
+  // Read after mount, not during render: localStorage does not exist on the
+  // server, and seeding initial state from it would desync the markup.
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem(MAP_OPEN_KEY);
+      if (saved !== null) setMapOpen(saved === '1');
+    } catch {
+      // Blocked storage just means the map starts open, which is the default.
+    }
+  }, []);
 
-      <div
-        className={`shrink-0 overflow-hidden transition-[width] duration-300 ease-in-out ${
-          mapOpen ? 'w-1/2' : 'w-0'
-        }`}
-      >
-        <div className="h-full w-full min-w-[400px]">
-          <RouteMapPanel />
-        </div>
-      </div>
+  const toggleMap = () => {
+    setMapOpen((open) => {
+      const next = !open;
+      try {
+        window.localStorage.setItem(MAP_OPEN_KEY, next ? '1' : '0');
+      } catch {
+        // Not worth surfacing; the toggle still works for this session.
+      }
+      return next;
+    });
+  };
+
+  return (
+    <div className="relative h-full overflow-hidden">
+      <SplitPane rightOpen={mapOpen} left={<ChatPanel />} right={<RouteMapPanel />} />
 
       <button
-        onClick={() => setMapOpen((v) => !v)}
+        onClick={toggleMap}
         title={mapOpen ? 'Hide map' : 'Show map'}
-        // Leaflet's own panes/controls (.leaflet-control-container) use
-        // z-index up to 1000, and neither this row nor RouteMapPanel's
-        // wrapper establishes an isolating stacking context - so a plain
-        // z-10 here lost directly to the map and rendered invisibly behind
-        // it. z-[1100] clears Leaflet's own stack.
-        className="absolute top-4 z-[1100] flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-600 shadow-md transition-[left,right] duration-300 ease-in-out hover:bg-gray-50"
-        style={mapOpen ? { left: 'calc(50% + 12px)' } : { right: '16px' }}
+        aria-label={mapOpen ? 'Hide map' : 'Show map'}
+        aria-pressed={mapOpen}
+        // Pinned to the top-right of the whole area rather than to the
+        // divider: the divider now moves, and a control that slides around
+        // as you drag is hard to aim at. z-[1100] clears Leaflet's own
+        // stacking context, whose controls reach z-index 1000.
+        className="absolute right-4 top-4 z-[1100] flex h-9 items-center gap-2 rounded-full border border-gray-200 bg-white px-3 text-xs font-medium text-gray-700 shadow-md transition hover:bg-gray-50"
       >
-        {mapOpen ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+        {mapOpen ? <PanelRightClose className="h-4 w-4" /> : <MapIcon className="h-4 w-4" />}
+        <span>{mapOpen ? 'Hide map' : 'Show map'}</span>
       </button>
     </div>
   );
