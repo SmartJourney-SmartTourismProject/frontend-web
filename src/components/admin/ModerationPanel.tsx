@@ -47,6 +47,7 @@ export function ModerationPanel({ kind, onChanged }: { kind: Kind; onChanged: ()
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [approvingAll, setApprovingAll] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -108,6 +109,43 @@ export function ModerationPanel({ kind, onChanged }: { kind: Kind; onChanged: ()
       setBusyId(null);
     }
   };
+
+  /**
+   * Approves the rows currently on screen - the ones the admin has just read
+   * - rather than everything matching the filter. The distinction matters:
+   * the pending queue here is 1,500+ rows of raw OSM data, and a button that
+   * approved all of them sight-unseen would defeat the review step entirely.
+   */
+  const approveAllShown = async () => {
+    const pending = rows.filter((r) => r.state === 'pending');
+    if (pending.length === 0) return;
+    const noun = kind === 'listings' ? 'listing' : 'event';
+    if (
+      !confirm(
+        `Approve all ${pending.length} ${noun}${pending.length === 1 ? '' : 's'} shown on this page?
+
+` +
+          `Only what is listed here is approved. Anything further down the queue stays pending.`,
+      )
+    )
+      return;
+
+    setApprovingAll(true);
+    setError(null);
+    try {
+      const ids = pending.map((r) => r.id);
+      if (kind === 'listings') await adminApi.verifyListingsBulk(ids);
+      else await adminApi.verifyEventsBulk(ids);
+      await load();
+      onChanged();
+    } catch {
+      setError(`Could not approve all ${noun}s. Some may have been approved already.`);
+    } finally {
+      setApprovingAll(false);
+    }
+  };
+
+  const pendingShown = rows.filter((r) => r.state === 'pending').length;
 
   return (
     <div className="flex flex-col gap-4">
@@ -183,7 +221,19 @@ export function ModerationPanel({ kind, onChanged }: { kind: Kind; onChanged: ()
           <p className="text-sm font-semibold text-gray-900">
             {loading ? 'Loading…' : `${total} ${kind === 'listings' ? 'listing' : 'event'}${total === 1 ? '' : 's'}`}
           </p>
-          {rows.length < total && <p className="text-xs text-gray-400">Showing the first {rows.length}</p>}
+          <div className="flex items-center gap-3">
+            {rows.length < total && <p className="text-xs text-gray-400">Showing the first {rows.length}</p>}
+            {pendingShown > 0 && (
+              <button
+                type="button"
+                onClick={approveAllShown}
+                disabled={approvingAll}
+                className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-50"
+              >
+                {approvingAll ? 'Approving…' : `Approve all ${pendingShown} shown`}
+              </button>
+            )}
+          </div>
         </div>
 
         {!loading && rows.length === 0 && (
