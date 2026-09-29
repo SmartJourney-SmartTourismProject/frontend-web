@@ -39,7 +39,12 @@ function isMissingSession(error: unknown): boolean {
 const REFINE_ACTIONS = [
   'Show budget breakdown',
   'Make it cheaper',
-  'Add a restaurant recommendation',
+  // "Add a restaurant recommendation" was removed: the backend has no
+  // targeted "add one item" follow-up, so the phrase fell through to a full
+  // shape_only re-plan that drew from the same ranked pool and usually
+  // returned an identical itinerary. It looked broken and cost a planning
+  // cycle each time. Restore it once there is a follow-up scope that appends
+  // to an itinerary instead of rebuilding it.
 ];
 
 /** Openers, for a conversation that has not produced a plan yet. */
