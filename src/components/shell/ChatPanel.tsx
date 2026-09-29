@@ -207,6 +207,11 @@ export function ChatPanel() {
           startLocation: plan.start_location ?? null,
         });
       }
+      // The server renames the session from the plan it just built ("Galle →
+      // Kandy · 1 day"), so the sidebar's copy is stale the moment a plan
+      // lands. Without this it kept showing the placeholder title the session
+      // was created with - the raw first message - until a manual reload.
+      bumpSessionsVersion();
     } catch {
       setEntries((prev) => [
         ...prev,
