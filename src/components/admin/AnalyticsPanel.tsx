@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Info, Table2 } from 'lucide-react';
+import { Table2 } from 'lucide-react';
 import { adminApi } from '@/lib/api';
 import type { AdminAnalytics } from '@/lib/types';
 import { BreakdownBars, ModerationChart, SERIES, TrendChart } from './charts';
@@ -101,15 +101,6 @@ export function AnalyticsPanel() {
         </Card>
       </div>
 
-      {data.subscription_revenue === null && (
-        <p className="flex items-start gap-2 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-xs text-gray-600">
-          <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-          <span>
-            SRS §3.1.14 also lists <strong>subscription revenue</strong>. Subscriptions are out of scope this round
-            (BACKEND_PLAN.md §1), so there is no figure to report — shown as unavailable rather than as zero.
-          </span>
-        </p>
-      )}
     </div>
   );
 }
