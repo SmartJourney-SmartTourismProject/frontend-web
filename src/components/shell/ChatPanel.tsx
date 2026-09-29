@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { isAxiosError } from 'axios';
 import { Bookmark, BookmarkCheck, Send } from 'lucide-react';
-import { chatApi, tripsApi } from '@/lib/api';
+import { chatApi, exploreApi, tripsApi } from '@/lib/api';
 import { useTripStore } from '@/lib/trip-store';
 import type { SaveTripPayload, TripPlanResponse } from '@/lib/types';
 
@@ -30,11 +30,25 @@ function isMissingSession(error: unknown): boolean {
   return isAxiosError(error) && error.response?.status === 404;
 }
 
-const QUICK_ACTIONS = [
+/**
+ * Refinements. Every one of these edits an itinerary that already exists, so
+ * they are only offered when the last reply actually produced one - otherwise
+ * the panel invites you to "make it cheaper" when there is no plan to make
+ * cheaper, which is what a thin-data district or a planner error leaves behind.
+ */
+const REFINE_ACTIONS = [
   'Show budget breakdown',
   'Make it cheaper',
   'Add a restaurant recommendation',
 ];
+
+/** Openers, for a conversation that has not produced a plan yet. */
+const START_ACTIONS = ['Plan a 3-day trip', 'Somewhere for a weekend', 'What can I do on a budget?'];
+
+/** A plan is only useful to refine if it actually has stops in it. */
+function hasItinerary(entry?: ChatEntry): boolean {
+  return (entry?.plan?.itinerary?.length ?? 0) > 0;
+}
 
 export function ChatPanel() {
   const [entries, setEntries] = useState<ChatEntry[]>([]);
@@ -45,7 +59,27 @@ export function ChatPanel() {
   // back to an earlier itinerary in the same conversation (e.g. compare the
   // 3-day and 2-day versions after a "make it 2 days" follow-up).
   const [selectedPlanIndex, setSelectedPlanIndex] = useState<number | null>(null);
+  // Districts the catalogue can actually plan for. Suggesting a district with
+  // no verified listings just reproduces the "no listings found" reply, so the
+  // openers are derived from real data rather than hard-coded.
+  const [coveredDistricts, setCoveredDistricts] = useState<string[]>([]);
   const logRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    exploreApi
+      .searchListings()
+      .then((res) => {
+        if (cancelled) return;
+        const names = [...new Set(res.items.map((l) => l.district?.name).filter(Boolean) as string[])];
+        setCoveredDistricts(names.slice(0, 3));
+      })
+      // A failure here only costs us tailored suggestions, never the chat.
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const sessionId = useTripStore((s) => s.sessionId);
   const setSessionId = useTripStore((s) => s.setSessionId);
@@ -233,19 +267,37 @@ export function ChatPanel() {
           )}
         </div>
 
-        {entries.length > 0 && !sending && (
-          <div className="mt-4 flex flex-wrap gap-2">
-            {QUICK_ACTIONS.map((action) => (
-              <button
-                key={action}
-                onClick={() => sendMessage(action)}
-                className="rounded-full border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 transition hover:bg-gray-50"
-              >
-                {action}
-              </button>
-            ))}
-          </div>
-        )}
+        {!sending &&
+          (() => {
+            // Refinements only once there is something to refine; otherwise
+            // offer a way forward, pointed at districts we can actually plan.
+            const planned = hasItinerary(entries[entries.length - 1]);
+            const suggestions = planned
+              ? REFINE_ACTIONS
+              : coveredDistricts.length > 0
+                ? coveredDistricts.map((d) => `Plan a 3-day trip in ${d}`)
+                : START_ACTIONS;
+            return (
+              <div className="mt-4 flex flex-wrap gap-2">
+                {!planned && entries.length > 0 && (
+                  <p className="w-full text-xs text-gray-500">
+                    {coveredDistricts.length > 0
+                      ? 'Try a destination we have verified places for:'
+                      : 'Try one of these:'}
+                  </p>
+                )}
+                {suggestions.map((action) => (
+                  <button
+                    key={action}
+                    onClick={() => sendMessage(action)}
+                    className="rounded-full border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 transition hover:bg-gray-50"
+                  >
+                    {action}
+                  </button>
+                ))}
+              </div>
+            );
+          })()}
       </div>
 
       <form onSubmit={handleSubmit} className="flex items-center gap-2 border-t border-gray-100 p-4">
