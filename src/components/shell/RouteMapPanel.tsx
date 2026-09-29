@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
@@ -25,7 +25,14 @@ L.Icon.Default.mergeOptions({
 const DAY_ROUTE_COLORS = ['#412874', '#dc2626', '#16a34a', '#d97706', '#9333ea', '#0891b2'];
 const OSRM_MAX_WAYPOINTS = 25;
 
-async function fetchRoadRoute(points: [number, number][]): Promise<[number, number][] | null> {
+interface RoadRoute {
+  coords: [number, number][];
+  /** Road distance, not straight-line - this is what OSRM actually drove. */
+  km: number;
+  minutes: number;
+}
+
+async function fetchRoadRoute(points: [number, number][]): Promise<RoadRoute | null> {
   if (points.length < 2 || points.length > OSRM_MAX_WAYPOINTS) return null;
   const coordsParam = points.map(([lat, lon]) => `${lon},${lat}`).join(';');
   const url = `https://router.project-osrm.org/route/v1/driving/${coordsParam}?geometries=geojson&overview=full`;
@@ -35,10 +42,35 @@ async function fetchRoadRoute(points: [number, number][]): Promise<[number, numb
     const data = await resp.json();
     const route = data.routes?.[0];
     if (!route) return null;
-    return route.geometry.coordinates.map(([lon, lat]: [number, number]) => [lat, lon]);
+    return {
+      coords: route.geometry.coordinates.map(([lon, lat]: [number, number]) => [lat, lon]),
+      // OSRM reports metres and seconds; the response already carried both,
+      // they were simply being thrown away with the rest of the payload.
+      km: (route.distance ?? 0) / 1000,
+      minutes: (route.duration ?? 0) / 60,
+    };
   } catch {
     return null;
   }
+}
+
+/** Straight-line fallback, used only when OSRM is unreachable. */
+function haversineKm([aLat, aLon]: [number, number], [bLat, bLon]: [number, number]): number {
+  const R = 6371;
+  const dLat = ((bLat - aLat) * Math.PI) / 180;
+  const dLon = ((bLon - aLon) * Math.PI) / 180;
+  const h =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((aLat * Math.PI) / 180) * Math.cos((bLat * Math.PI) / 180) * Math.sin(dLon / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(h));
+}
+
+function formatDuration(minutes: number): string {
+  const total = Math.round(minutes);
+  if (total < 60) return `${total} min`;
+  const h = Math.floor(total / 60);
+  const m = total % 60;
+  return m ? `${h} h ${m} min` : `${h} h`;
 }
 
 export function RouteMapPanel() {
@@ -46,7 +78,9 @@ export function RouteMapPanel() {
   const mapRef = useRef<L.Map | null>(null);
   const markersRef = useRef<L.LayerGroup | null>(null);
   const routeLayersRef = useRef<L.Polyline[]>([]);
+  const [totalKm, setTotalKm] = useState<number | null>(null);
   const itinerary = useTripStore((s) => s.itinerary);
+  const startLocation = useTripStore((s) => s.startLocation);
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
@@ -92,10 +126,26 @@ export function RouteMapPanel() {
 
       const allPoints: [number, number][] = [];
       let stopNumber = 1;
+      let totalKm = 0;
+
+      // The origin is not an itinerary stop - the plan only lists places at
+      // the destination - so "Galle to Kandy" drew as Kandy alone until the
+      // departure point was plotted explicitly. Day 1's route starts here
+      // when one is known, which is what makes the inbound leg visible.
+      let originPoint: [number, number] | null = null;
+      if (startLocation && typeof startLocation.lat === 'number' && typeof startLocation.lon === 'number') {
+        originPoint = [startLocation.lat, startLocation.lon];
+        L.marker(originPoint)
+          .bindPopup(`<b>Start${startLocation.name ? `: ${startLocation.name}` : ''}</b>`)
+          .addTo(markersLayer!);
+        allPoints.push(originPoint);
+      }
 
       for (let dayIdx = 0; dayIdx < itinerary.length; dayIdx++) {
         const day = itinerary[dayIdx];
-        const dayPoints: [number, number][] = [];
+        // Only day 1 departs from the origin; later days start where the
+        // traveler already is.
+        const dayPoints: [number, number][] = dayIdx === 0 && originPoint ? [originPoint] : [];
         for (const item of day.items) {
           if (typeof item.lat !== 'number' || typeof item.lon !== 'number') continue;
           L.marker([item.lat, item.lon])
@@ -110,23 +160,54 @@ export function RouteMapPanel() {
         const color = DAY_ROUTE_COLORS[dayIdx % DAY_ROUTE_COLORS.length];
         const roadRoute = await fetchRoadRoute(dayPoints);
         if (cancelled) return;
+
         const line = roadRoute
-          ? L.polyline(roadRoute, { color, weight: 4 })
+          ? L.polyline(roadRoute.coords, { color, weight: 4 })
           : L.polyline(dayPoints, { color, weight: 3, dashArray: '6 6' });
-        line.addTo(map!);
+
+        // When OSRM is unreachable the dashed straight-line fallback is
+        // already drawn, so the distance shown must match it - a road figure
+        // next to a straight line would be a number the map is not showing.
+        let dayKm: number;
+        let label: string;
+        if (roadRoute) {
+          dayKm = roadRoute.km;
+          label = `Day ${day.day}: ${dayKm.toFixed(1)} km · ${formatDuration(roadRoute.minutes)} driving`;
+        } else {
+          dayKm = dayPoints
+            .slice(1)
+            .reduce((sum, point, i) => sum + haversineKm(dayPoints[i], point), 0);
+          label = `Day ${day.day}: ~${dayKm.toFixed(1)} km straight line (road route unavailable)`;
+        }
+        totalKm += dayKm;
+
+        line.bindTooltip(label, { sticky: true }).addTo(map!);
         routeLayersRef.current.push(line);
       }
 
       if (allPoints.length > 0) {
         map!.fitBounds(L.latLngBounds(allPoints), { padding: [30, 30] });
       }
+      setTotalKm(totalKm > 0 ? totalKm : null);
     }
 
     render();
     return () => {
       cancelled = true;
     };
-  }, [itinerary]);
+    // startLocation belongs here too: the departure leg is drawn from it, so
+    // a plan that changes only the origin must still redraw.
+  }, [itinerary, startLocation]);
 
-  return <div ref={containerRef} className="h-full w-full" />;
+  return (
+    <div className="relative h-full w-full">
+      <div ref={containerRef} className="h-full w-full" />
+      {totalKm !== null && (
+        <div className="pointer-events-none absolute bottom-3 right-3 z-[1100] rounded-lg border border-gray-200 bg-white/95 px-3 py-1.5 text-xs font-medium text-gray-700 shadow">
+          Total route ·{' '}
+          <span className="font-semibold text-gray-900">{totalKm.toFixed(1)} km</span>
+        </div>
+      )}
+    </div>
+  );
 }

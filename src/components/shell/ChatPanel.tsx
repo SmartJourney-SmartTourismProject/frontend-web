@@ -123,6 +123,7 @@ export function ChatPanel() {
           destination: lastPlan.destination,
           estimatedCost: lastPlan.estimated_cost,
           currency: lastPlan.currency,
+          startLocation: lastPlan.start_location ?? null,
         });
         setSelectedPlanIndex(lastPlanIndex);
       } else {
@@ -203,6 +204,7 @@ export function ChatPanel() {
           destination: plan.destination,
           estimatedCost: plan.estimated_cost,
           currency: plan.currency,
+          startLocation: plan.start_location ?? null,
         });
       }
     } catch {
@@ -256,6 +258,7 @@ export function ChatPanel() {
                         destination: entry.plan!.destination,
                         estimatedCost: entry.plan!.estimated_cost,
                         currency: entry.plan!.currency,
+                        startLocation: entry.plan!.start_location ?? null,
                       });
                     }}
                   />

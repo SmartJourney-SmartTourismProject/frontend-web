@@ -54,6 +54,15 @@ export interface ItineraryDay {
   day_cost?: number;
 }
 
+export interface StartLocation {
+  lat: number;
+  lon: number;
+  /** How the origin was determined; 'text' means the traveler named it. */
+  source: 'gps' | 'ip' | 'text';
+  /** Only set for a named origin ("from Galle"); a GPS/IP fix has none. */
+  name?: string | null;
+}
+
 export interface TripPlanResponse {
   session_id: string;
   destination: string | null;
@@ -65,6 +74,11 @@ export interface TripPlanResponse {
   data_freshness: string | null;
   weather: unknown;
   disaster: unknown;
+  /**
+   * Where the trip departs from, when known. The itinerary only lists stops
+   * at the destination, so this is what lets the map draw the leg into it.
+   */
+  start_location: StartLocation | null;
   final_response: string | null;
   errors: string[];
   trace: Record<string, unknown>;

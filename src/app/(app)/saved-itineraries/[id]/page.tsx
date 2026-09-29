@@ -39,6 +39,9 @@ export default function TripDetailPage() {
           destination: t.district?.name ?? t.title,
           estimatedCost: t.estimated_cost ? Number(t.estimated_cost) : null,
           currency: t.currency,
+          // A saved trip stores its stops, not the origin it was planned
+          // from, so there is no departure leg to redraw here.
+          startLocation: null,
         });
       })
       .catch(() => setNotFound(true));

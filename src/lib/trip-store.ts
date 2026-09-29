@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { ItineraryDay } from './types';
+import type { ItineraryDay, StartLocation } from './types';
 
 interface TripState {
   sessionId: string | null;
@@ -8,6 +8,8 @@ interface TripState {
   destination: string | null;
   estimatedCost: number | null;
   currency: string;
+  /** Departure point for the current plan, when the traveler gave one. */
+  startLocation: StartLocation | null;
   // Bumped whenever a session is created/renamed so AppSidebar's chat-history
   // list knows to refetch, without wiring a prop callback through the layout.
   sessionsVersion: number;
@@ -17,6 +19,7 @@ interface TripState {
     destination: string | null;
     estimatedCost: number | null;
     currency: string;
+    startLocation: StartLocation | null;
   }) => void;
   bumpSessionsVersion: () => void;
   reset: () => void;
@@ -42,13 +45,21 @@ export const useTripStore = create<TripState>()(
       destination: null,
       estimatedCost: null,
       currency: 'LKR',
+      startLocation: null,
       sessionsVersion: 0,
       setSessionId: (id) => set({ sessionId: id }),
-      setPlan: ({ itinerary, destination, estimatedCost, currency }) =>
-        set({ itinerary, destination, estimatedCost, currency }),
+      setPlan: ({ itinerary, destination, estimatedCost, currency, startLocation }) =>
+        set({ itinerary, destination, estimatedCost, currency, startLocation }),
       bumpSessionsVersion: () => set((s) => ({ sessionsVersion: s.sessionsVersion + 1 })),
       reset: () =>
-        set({ sessionId: null, itinerary: [], destination: null, estimatedCost: null, currency: 'LKR' }),
+        set({
+          sessionId: null,
+          itinerary: [],
+          destination: null,
+          estimatedCost: null,
+          currency: 'LKR',
+          startLocation: null,
+        }),
     }),
     {
       name: 'smartjourney-trip-store',
