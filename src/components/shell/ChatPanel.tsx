@@ -2,9 +2,10 @@
 
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { isAxiosError } from 'axios';
-import { Bookmark, BookmarkCheck, Send } from 'lucide-react';
+import { Bookmark, BookmarkCheck, MapPinOff, Send } from 'lucide-react';
 import { chatApi, exploreApi, tripsApi } from '@/lib/api';
 import { useTripStore } from '@/lib/trip-store';
+import { useCurrentLocation } from '@/lib/use-current-location';
 import type { SaveTripPayload, TripPlanResponse } from '@/lib/types';
 
 interface ChatEntry {
@@ -68,6 +69,15 @@ export function ChatPanel() {
   // no verified listings just reproduces the "no listings found" reply, so the
   // openers are derived from real data rather than hard-coded.
   const [coveredDistricts, setCoveredDistricts] = useState<string[]>([]);
+  // Sent with every message so a trip that names no departure point can
+  // still be routed from where the traveler actually is. Null until the
+  // browser answers, and null forever if they decline - the server then
+  // falls back to IP geolocation on its own.
+  const {
+    coords: currentLocation,
+    status: locationStatus,
+    request: requestLocation,
+  } = useCurrentLocation();
   const logRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -171,7 +181,7 @@ export function ChatPanel() {
 
       let plan: TripPlanResponse;
       try {
-        plan = await chatApi.sendMessage(activeSessionId, trimmed);
+        plan = await chatApi.sendMessage(activeSessionId, trimmed, currentLocation ?? undefined);
       } catch (error) {
         if (!isMissingSession(error)) throw error;
         // Stale id: open a fresh session and send the same message again,
@@ -181,7 +191,7 @@ export function ChatPanel() {
         activeSessionId = session.id;
         setSessionId(activeSessionId);
         bumpSessionsVersion();
-        plan = await chatApi.sendMessage(activeSessionId, trimmed);
+        plan = await chatApi.sendMessage(activeSessionId, trimmed, currentLocation ?? undefined);
       }
 
       setEntries((prev) => {
@@ -312,6 +322,30 @@ export function ChatPanel() {
             );
           })()}
       </div>
+
+      {/* Without this the feature fails silently: a trip with no departure
+          point just gets planned without one, and there is nothing on screen
+          to say the browser refused location or was never asked. */}
+      {(locationStatus === 'denied' || locationStatus === 'unavailable') && (
+        <div className="flex items-center gap-2 border-t border-amber-100 bg-amber-50 px-4 py-2 text-xs text-amber-800">
+          <MapPinOff className="h-3.5 w-3.5 shrink-0" />
+          <span className="flex-1">
+            {locationStatus === 'denied'
+              ? 'Location is blocked, so trips start from your destination rather than from you.'
+              : "Couldn't read your location, so trips start from your destination."}{' '}
+            You can still say where you are starting from, e.g. &ldquo;from Colombo&rdquo;.
+          </span>
+          {locationStatus === 'unavailable' && (
+            <button
+              type="button"
+              onClick={requestLocation}
+              className="shrink-0 rounded-md border border-amber-300 px-2 py-0.5 font-medium transition hover:bg-amber-100"
+            >
+              Retry
+            </button>
+          )}
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="flex items-center gap-2 border-t border-gray-100 p-4">
         <input
