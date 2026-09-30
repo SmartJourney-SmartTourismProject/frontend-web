@@ -6,7 +6,7 @@ import { Bookmark, BookmarkCheck, MapPinOff, Send } from 'lucide-react';
 import { chatApi, exploreApi, tripsApi } from '@/lib/api';
 import { useTripStore } from '@/lib/trip-store';
 import { useCurrentLocation } from '@/lib/use-current-location';
-import type { SaveTripPayload, TripPlanResponse } from '@/lib/types';
+import type { SaveTripPayload, TripPlanResponse, TripSource } from '@/lib/types';
 
 interface ChatEntry {
   role: 'user' | 'assistant' | 'error';
@@ -260,6 +260,9 @@ export function ChatPanel() {
                 }`}
               >
                 {entry.content}
+                {entry.plan && entry.plan.sources && entry.plan.sources.length > 0 && (
+                  <SourcesList sources={entry.plan.sources} />
+                )}
                 {entry.plan && entry.plan.itinerary.length > 0 && (
                   <ItinerarySummary
                     plan={entry.plan}
@@ -363,6 +366,44 @@ export function ChatPanel() {
           <Send className="h-4 w-4" />
         </button>
       </form>
+    </div>
+  );
+}
+
+/**
+ * Citations for a RAG Q&A answer (ai-backend's app/rag/) - what a
+ * "question" or "both" intent turn's answer actually cited, per
+ * app/core/orchestrator.py's `_answer_node`. Plain links, not a card: this
+ * sits directly under a chat bubble's prose, which already carries the
+ * inline [N] markers the answer refers to.
+ */
+function SourcesList({ sources }: { sources: TripSource[] }) {
+  return (
+    <div className="mt-2 border-t border-black/10 pt-2 text-xs text-gray-600">
+      <p className="font-medium text-gray-500">Sources</p>
+      <ul className="mt-1 flex flex-col gap-0.5">
+        {sources.map((source, i) => (
+          <li key={i}>
+            {source.url ? (
+              <a
+                href={source.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-brand-600 underline decoration-dotted underline-offset-2 hover:text-brand-700"
+              >
+                {source.title}
+                {source.section ? ` — ${source.section}` : ''}
+              </a>
+            ) : (
+              <span>
+                {source.title}
+                {source.section ? ` — ${source.section}` : ''}
+              </span>
+            )}
+            <span className="text-gray-400"> ({source.license})</span>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

@@ -80,12 +80,22 @@ export interface TripPlanResponse {
    */
   start_location: StartLocation | null;
   final_response: string | null;
+  /** RAG Q&A citations (ai-backend's app/rag/) - what a "question" or
+   *  "both" intent turn's answer actually cited. Empty on a plain plan. */
+  sources: TripSource[];
   errors: string[];
   trace: Record<string, unknown>;
   // Present on the response to POST /chat/sessions/:id/messages - the id of
   // the assistant chat_message this plan was persisted as. Passed back on
   // save so the trip can be linked to it (see SaveTripPayload).
   chat_message_id?: string;
+}
+
+export interface TripSource {
+  title: string;
+  url: string | null;
+  section: string | null;
+  license: string;
 }
 
 export interface District {
