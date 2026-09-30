@@ -6,6 +6,7 @@ import { exploreApi } from '@/lib/api';
 import type { Category, District, ExploreEvent, Listing } from '@/lib/types';
 import { ListingCard } from '@/components/explore/ListingCard';
 import { ListingRow } from '@/components/explore/ListingRow';
+import { EventCard } from '@/components/explore/EventCard';
 
 export default function ExplorePage() {
   const [categories, setCategories] = useState<Category[]>([]);
@@ -43,7 +44,8 @@ export default function ExplorePage() {
       exploreApi.searchListings({ category: hotelId }),
       exploreApi.searchListings({ category: restaurantId }),
       exploreApi.searchListings({ category: attractionId }),
-      exploreApi.getEvents(),
+      // Upcoming only - an event that already ended isn't something to explore.
+      exploreApi.getEvents({ from: new Date().toISOString() }),
     ])
       .then(([hotelRes, restaurantRes, attractionRes, eventRes]) => {
         setHotels(hotelRes.items);
@@ -160,18 +162,27 @@ export default function ExplorePage() {
           <p className="text-sm text-gray-400">Loading…</p>
         ) : (
           <>
-            <ListingRow title="Hotels & Restaurants" listings={hotelsAndRestaurants} />
-            <ListingRow title="Top Attractions & Hidden Gems" listings={attractions} />
-            {/* local_event has 0 rows nationwide - Ticketmaster has no Sri
-                Lanka coverage, re-verified live 2026-09-04 (see TODO.md).
-                Rail ships empty rather than building event cards for data
-                that doesn't exist; events is still fetched so this updates
-                itself the moment real event data lands (admin-entered). */}
+            <ListingRow
+              title="Hotels & Restaurants"
+              listings={hotelsAndRestaurants}
+              seeAllHref="/explore/hotels"
+            />
+            <ListingRow
+              title="Top Attractions & Hidden Gems"
+              listings={attractions}
+              seeAllHref="/explore/attractions"
+            />
+            {/* Approved events only (scraped ones wait in the admin queue
+                until an admin verifies them), upcoming only. */}
             <ListingRow
               title="Local Events & Cultural Festivals"
-              listings={[]}
-              emptyMessage={events.length === 0 ? 'No events available yet.' : undefined}
-            />
+              seeAllHref="/explore/events"
+              emptyMessage="No upcoming events yet."
+            >
+              {events.length > 0
+                ? events.slice(0, 20).map((event) => <EventCard key={event.id} event={event} />)
+                : undefined}
+            </ListingRow>
           </>
         )}
       </div>

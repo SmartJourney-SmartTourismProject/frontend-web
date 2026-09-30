@@ -30,31 +30,63 @@ export default function TripDetailPage() {
   const resetTrip = useTripStore((s) => s.reset);
 
   useEffect(() => {
-    tripsApi
-      .getById(id)
-      .then((t) => {
-        setTrip(t);
-        setPlan({
-          itinerary: tripToItineraryDays(t),
-          destination: t.district?.name ?? t.title,
-          estimatedCost: t.estimated_cost ? Number(t.estimated_cost) : null,
-          currency: t.currency,
-          // A saved trip stores its stops, not the origin it was planned
-          // from, so there is no departure leg to redraw here.
-          startLocation: null,
-        });
-      })
-      .catch(() => setNotFound(true));
+    reload(id).catch(() => setNotFound(true));
 
     return () => resetTrip();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
+
+  const [dateError, setDateError] = useState<string | null>(null);
+
+  const reload = async (id: string) => {
+    const t = await tripsApi.getById(id);
+    setTrip(t);
+    setPlan({
+      itinerary: tripToItineraryDays(t),
+      destination: t.district?.name ?? t.title,
+      estimatedCost: t.estimated_cost ? Number(t.estimated_cost) : null,
+      currency: t.currency,
+      // A saved trip stores its stops, not the origin it was planned
+      // from, so there is no departure leg to redraw here.
+      startLocation: null,
+    });
+  };
 
   const handleStatusChange = async (status: TripStatus) => {
     if (!trip) return;
     const updated = await tripsApi.update(trip.id, { status });
     setTrip({ ...trip, status: updated.status });
   };
+
+  // Picking a start date re-dates every day server-side and, for a draft,
+  // confirms it (Upcoming) - so the day headers and status are reloaded.
+  const handleStartDate = async (value: string) => {
+    if (!trip || !value) return;
+    setDateError(null);
+    try {
+      await tripsApi.update(trip.id, { start_date: value });
+      await reload(trip.id);
+    } catch {
+      setDateError('Could not update the dates. Please try again.');
+    }
+  };
+
+  // An undated "upcoming" trip could never later move to Past, so
+  // confirming asks for a start date first when the trip has none.
+  const handleConfirm = async () => {
+    if (!trip) return;
+    if (!trip.start_date) {
+      setDateError('Pick a start date to confirm this trip.');
+      return;
+    }
+    const updated = await tripsApi.update(trip.id, { status: 'upcoming' });
+    setTrip({ ...trip, status: updated.status });
+  };
+
+  const dateRange =
+    trip?.start_date && trip.end_date
+      ? `${new Date(trip.start_date).toLocaleDateString()} – ${new Date(trip.end_date).toLocaleDateString()}`
+      : 'Dates not set';
 
   const handleDelete = async () => {
     if (!trip || !confirm('Delete this saved itinerary?')) return;
@@ -94,6 +126,29 @@ export default function TripDetailPage() {
           {trip.itinerary_day.length} day{trip.itinerary_day.length !== 1 ? 's' : ''}
           {trip.estimated_cost && ` · ${Number(trip.estimated_cost).toLocaleString()} ${trip.currency}`}
         </p>
+
+        <div className="mt-4 flex flex-wrap items-center gap-2 text-sm">
+          <span className="text-gray-600">{dateRange}</span>
+          <label className="flex items-center gap-1 text-gray-500">
+            Start
+            <input
+              type="date"
+              value={trip.start_date ? trip.start_date.slice(0, 10) : ''}
+              onChange={(e) => handleStartDate(e.target.value)}
+              className="rounded-lg border border-gray-300 px-2 py-1 text-sm"
+              aria-label="Trip start date"
+            />
+          </label>
+          {trip.status === 'draft' && (
+            <button
+              onClick={handleConfirm}
+              className="rounded-lg bg-brand-gradient px-3 py-1.5 text-sm font-semibold text-white hover:opacity-90"
+            >
+              Confirm trip
+            </button>
+          )}
+        </div>
+        {dateError && <p className="mt-2 text-xs text-red-600">{dateError}</p>}
 
         <div className="mt-4 flex items-center gap-2">
           <select

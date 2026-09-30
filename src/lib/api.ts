@@ -107,7 +107,7 @@ export const exploreApi = {
   searchListings: (query: ListingsQuery = {}) =>
     api.get<PaginatedListings>('/listings', { params: query }).then((r) => r.data),
 
-  getEvents: (params: { district?: string } = {}) =>
+  getEvents: (params: { district?: string; from?: string; to?: string } = {}) =>
     api.get<ExploreEvent[]>('/events', { params }).then((r) => r.data),
 
   getTags: () => api.get<Tag[]>('/tags').then((r) => r.data),

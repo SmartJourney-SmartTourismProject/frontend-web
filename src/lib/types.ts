@@ -45,6 +45,9 @@ export interface ItineraryItem {
   listing_id?: string | null;
   est_cost?: number | null;
   currency?: string;
+  /** Added by NestJS from travel_listing when the stop has a photo. */
+  photo_url?: string | null;
+  photo_attribution?: string | null;
 }
 
 export interface ItineraryDay {
@@ -398,6 +401,10 @@ export interface ExploreEvent {
   latitude: number | null;
   longitude: number | null;
   tags: string[];
+  price_min?: string | null;   // Prisma Decimal -> string; null when unknown
+  price_max?: string | null;
+  currency?: string;
+  source_url?: string | null;  // scraped events link back to their source page
   district: District;
 }
 

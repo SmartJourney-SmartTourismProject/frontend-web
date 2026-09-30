@@ -1,12 +1,14 @@
 'use client';
 
-import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
+import Image from 'next/image';
 import { isAxiosError } from 'axios';
 import { Bookmark, BookmarkCheck, MapPinOff, Send } from 'lucide-react';
 import { chatApi, exploreApi, tripsApi } from '@/lib/api';
 import { useTripStore } from '@/lib/trip-store';
 import { useCurrentLocation } from '@/lib/use-current-location';
 import type { SaveTripPayload, TripPlanResponse, TripSource } from '@/lib/types';
+import { PhotoLightbox, type LightboxPhoto } from './PhotoLightbox';
 
 interface ChatEntry {
   role: 'user' | 'assistant' | 'error';
@@ -427,6 +429,33 @@ function ItinerarySummary({
   const [savedTripId, setSavedTripId] = useState<string | null>(initialSavedTripId ?? null);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState(false);
+  const [openPhoto, setOpenPhoto] = useState<number | null>(null);
+
+  // A plan re-shown on a weather/budget question turn used to come back
+  // with its day costs but a null total (fixed in ai-backend's trip.py);
+  // summing the days here keeps cards already stored that way correct -
+  // on screen and in what Save sends to the trip.
+  const estimatedCost =
+    plan.estimated_cost ??
+    (plan.itinerary.some((day) => day.day_cost != null)
+      ? plan.itinerary.reduce((sum, day) => sum + (day.day_cost ?? 0), 0)
+      : null);
+
+  // Up to six distinct stops that have a photo (hotels and some attractions
+  // do; restaurants never do), in itinerary order - e.g. a check-in hotel
+  // listed again at check-out appears once.
+  const photos = useMemo<LightboxPhoto[]>(() => {
+    const seen = new Set<string>();
+    const out: LightboxPhoto[] = [];
+    for (const day of plan.itinerary) {
+      for (const item of day.items) {
+        if (!item.photo_url || seen.has(item.photo_url)) continue;
+        seen.add(item.photo_url);
+        out.push({ url: item.photo_url, name: item.name, attribution: item.photo_attribution });
+      }
+    }
+    return out.slice(0, 6);
+  }, [plan.itinerary]);
 
   useEffect(() => {
     setSavedTripId(initialSavedTripId ?? null);
@@ -444,7 +473,7 @@ function ItinerarySummary({
         const payload: SaveTripPayload = {
           chat_message_id: chatMessageId,
           destination: plan.destination ?? undefined,
-          estimated_cost: plan.estimated_cost ?? undefined,
+          estimated_cost: estimatedCost ?? undefined,
           currency: plan.currency,
           itinerary: plan.itinerary.map((day) => ({
             day: day.day,
@@ -517,10 +546,37 @@ function ItinerarySummary({
           </li>
         ))}
       </ul>
+      {photos.length > 0 && (
+        <div className="flex gap-3 overflow-x-auto border-t border-gray-100 px-3 py-3">
+          {photos.map((photo, i) => (
+            <button
+              key={photo.url}
+              type="button"
+              onClick={() => setOpenPhoto(i)}
+              title={photo.name}
+              aria-label={`Enlarge photo of ${photo.name}`}
+              className="group w-28 shrink-0 text-left"
+            >
+              <div className="relative h-24 w-28 overflow-hidden rounded-lg bg-gray-100 ring-brand-400 transition group-hover:ring-2">
+                <Image src={photo.url} alt={photo.name} fill sizes="112px" className="object-cover" unoptimized />
+              </div>
+              <p className="mt-1 truncate text-[11px] text-gray-600">{photo.name}</p>
+            </button>
+          ))}
+        </div>
+      )}
+      {openPhoto !== null && (
+        <PhotoLightbox
+          photos={photos}
+          index={openPhoto}
+          onIndexChange={setOpenPhoto}
+          onClose={() => setOpenPhoto(null)}
+        />
+      )}
       <div className="flex items-center justify-between border-t border-gray-100 px-3 py-2 text-xs text-gray-600">
         <span>
-          {plan.estimated_cost != null
-            ? `Estimated cost: ${plan.estimated_cost.toLocaleString()} ${plan.currency}`
+          {estimatedCost != null
+            ? `Estimated cost: ${estimatedCost.toLocaleString()} ${plan.currency}`
             : ''}
         </span>
         <button
