@@ -53,9 +53,18 @@ const REFINE_ACTIONS = [
 /** Openers, for a conversation that has not produced a plan yet. */
 const START_ACTIONS = ['Plan a 3-day trip', 'Somewhere for a weekend', 'What can I do on a budget?'];
 
+/**
+ * At least one day with at least one stop. Counting days alone let a failed
+ * plan (days with nothing in them) render as a card of 0 LKR days with a
+ * Save button, and offer "Make it cheaper" on it.
+ */
+function hasStops(plan?: Pick<TripPlanResponse, 'itinerary'> | null): boolean {
+  return (plan?.itinerary ?? []).some((day) => (day.items?.length ?? 0) > 0);
+}
+
 /** A plan is only useful to refine if it actually has stops in it. */
 function hasItinerary(entry?: ChatEntry): boolean {
-  return (entry?.plan?.itinerary?.length ?? 0) > 0;
+  return hasStops(entry?.plan);
 }
 
 export function ChatPanel() {
@@ -125,7 +134,7 @@ export function ChatPanel() {
       // session left the map showing whatever the previous session's route
       // was (or nothing, on a fresh page load).
       const lastPlanIndex = session.chat_message.reduce(
-        (acc, m, idx) => (m.plan ? idx : acc),
+        (acc, m, idx) => (hasStops(m.plan) ? idx : acc),
         -1,
       );
       const lastPlan = lastPlanIndex >= 0 ? session.chat_message[lastPlanIndex].plan : undefined;
@@ -207,10 +216,10 @@ export function ChatPanel() {
             savedTripId: null,
           },
         ];
-        if (plan.itinerary.length > 0) setSelectedPlanIndex(next.length - 1);
+        if (hasStops(plan)) setSelectedPlanIndex(next.length - 1);
         return next;
       });
-      if (plan.itinerary.length > 0) {
+      if (hasStops(plan)) {
         setPlan({
           itinerary: plan.itinerary,
           destination: plan.destination,
@@ -265,7 +274,7 @@ export function ChatPanel() {
                 {entry.plan && entry.plan.sources && entry.plan.sources.length > 0 && (
                   <SourcesList sources={entry.plan.sources} />
                 )}
-                {entry.plan && entry.plan.itinerary.length > 0 && (
+                {entry.plan && hasStops(entry.plan) && (
                   <ItinerarySummary
                     plan={entry.plan}
                     chatMessageId={entry.chatMessageId}
