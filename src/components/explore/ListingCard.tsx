@@ -1,5 +1,13 @@
 import Image from 'next/image';
-import { Building2, Star, UtensilsCrossed, Landmark } from 'lucide-react';
+import { Building2, Eye, Star, UtensilsCrossed, Landmark } from 'lucide-react';
+
+/** 57637 -> "58k". Exact counts add noise at this size; the order of
+ *  magnitude is the part that says "this is a well-known place". */
+function compactViews(views: number): string {
+  if (views >= 1_000_000) return `${(views / 1_000_000).toFixed(1)}M`;
+  if (views >= 1_000) return `${Math.round(views / 1_000)}k`;
+  return String(views);
+}
 import type { Listing } from '@/lib/types';
 
 // No free image source exists for restaurants, and most hotels/attractions
@@ -43,12 +51,23 @@ export function ListingCard({ listing }: { listing: Listing }) {
             <Icon className="h-10 w-10" />
           </div>
         )}
-        {listing.rating && (
+        {/* A star rating when one exists, otherwise how many people look this
+            place up - the only signal most attractions have, since ratings
+            come from Booking.com and so cover hotels almost exclusively. */}
+        {listing.rating ? (
           <div className="absolute bottom-1.5 right-1.5 flex items-center gap-0.5 rounded-full bg-black/60 px-1.5 py-0.5 text-[11px] font-medium text-white">
             <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
             {Number(listing.rating).toFixed(1)}
           </div>
-        )}
+        ) : listing.popularity ? (
+          <div
+            title={`${listing.popularity.toLocaleString()} Wikipedia views in the last year`}
+            className="absolute bottom-1.5 right-1.5 flex items-center gap-0.5 rounded-full bg-black/60 px-1.5 py-0.5 text-[11px] font-medium text-white"
+          >
+            <Eye className="h-3 w-3 text-sky-300" />
+            {compactViews(listing.popularity)}
+          </div>
+        ) : null}
       </div>
       <p className="mt-1.5 truncate text-xs font-semibold uppercase tracking-wide text-brand-700">
         {listing.name}

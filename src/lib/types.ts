@@ -251,6 +251,12 @@ export interface Listing {
   currency: string;
   rating: string | null;
   rating_count: number;
+  /**
+   * Wikipedia pageviews over the last 12 months, when the place has an
+   * article. Star ratings exist almost only on hotels (Booking.com), so for
+   * attractions this is usually the only evidence the place is well known.
+   */
+  popularity?: number | null;
   photo_url: string | null;
   is_verified: boolean;
   category: Category;
