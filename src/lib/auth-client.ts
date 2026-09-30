@@ -6,18 +6,36 @@ import { signIn, signOut } from 'next-auth/react';
 // query parameters. All of these leave the app for Keycloak and come back to
 // `callbackUrl` with a session.
 
+/**
+ * Set when a sign-in leaves for Keycloak, read (once) by BackToSignInGuard
+ * on the first app page after it comes back: that page's Back button would
+ * return into the sign-in pages, so the guard intercepts it.
+ */
+export const SIGN_IN_STARTED_KEY = 'sj-sign-in-started';
+
+function markSignInStarted() {
+  try {
+    sessionStorage.setItem(SIGN_IN_STARTED_KEY, '1');
+  } catch {
+    // Storage blocked (private mode etc.) - the Back guard just won't arm.
+  }
+}
+
 /** Keycloak's login page. */
 export function signInWithKeycloak(callbackUrl = '/home') {
+  markSignInStarted();
   return signIn('keycloak', { callbackUrl });
 }
 
 /** Skip Keycloak's form and go straight to Google. */
 export function signInWithGoogle(callbackUrl = '/home') {
+  markSignInStarted();
   return signIn('keycloak', { callbackUrl }, { kc_idp_hint: 'google' });
 }
 
 /** Keycloak's registration form (see keycloakRegister in lib/auth.ts). */
 export function registerWithKeycloak(callbackUrl = '/home') {
+  markSignInStarted();
   return signIn('keycloak-register', { callbackUrl });
 }
 

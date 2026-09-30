@@ -1,7 +1,7 @@
 'use client';
 
-import Link from 'next/link';
 import { Plane } from 'lucide-react';
+import { AuthLaunchButton } from '@/components/auth/AuthLaunchButton';
 
 const NAV_LINKS = [
   { href: '#features', label: 'Features' },
@@ -30,18 +30,18 @@ export function Header() {
       </nav>
 
       <div className="flex items-center gap-3">
-        <Link
-          href="/login"
+        <AuthLaunchButton
+          mode="login"
           className="rounded-xl border border-white px-5 py-2.5 text-sm font-bold text-white transition duration-200 hover:bg-white/10 sm:px-6"
         >
           Log In
-        </Link>
-        <Link
-          href="/signup"
+        </AuthLaunchButton>
+        <AuthLaunchButton
+          mode="signup"
           className="rounded-xl bg-brand-gradient px-5 py-2.5 text-sm font-bold text-white shadow-md transition duration-200 hover:shadow-lg hover:brightness-110 active:scale-[0.97] sm:px-6"
         >
           Sign Up
-        </Link>
+        </AuthLaunchButton>
       </div>
     </header>
   );

@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import { AuthLaunchButton } from '@/components/auth/AuthLaunchButton';
 import Image from 'next/image';
 import { motion, useReducedMotion } from 'framer-motion';
 import { MapPinned, Sparkles, Wallet } from 'lucide-react';
@@ -73,12 +73,12 @@ export function Hero() {
               transition={{ duration: 0.7, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
               className="mt-10 flex flex-wrap items-center gap-4"
             >
-              <Link
-                href="/signup"
-                className="inline-flex items-center justify-center rounded-2xl bg-brand-gradient px-10 py-4 text-lg font-semibold text-white shadow-lg shadow-brand-900/30 transition duration-200 hover:shadow-xl hover:brightness-110 active:scale-[0.98]"
+              <AuthLaunchButton
+                mode="signup"
+                className="rounded-2xl bg-brand-gradient px-10 py-4 text-lg font-semibold text-white shadow-lg shadow-brand-900/30 transition duration-200 hover:shadow-xl hover:brightness-110 active:scale-[0.98]"
               >
                 Start Here
-              </Link>
+              </AuthLaunchButton>
               <a
                 href="#how-it-works"
                 className="inline-flex items-center justify-center rounded-2xl border-2 border-white/70 bg-white/5 px-8 py-4 text-lg font-medium text-white backdrop-blur-sm transition duration-200 hover:bg-white/15"

@@ -2,17 +2,24 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
-import { useState } from 'react';
-import { KeyRound, Loader2, LogIn, Plane, UserPlus } from 'lucide-react';
-import { registerWithKeycloak, signInWithGoogle, signInWithKeycloak } from '@/lib/auth-client';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useEffect, useRef, useState } from 'react';
+import { useSession } from 'next-auth/react';
+import { KeyRound, Loader2, LogIn, LogOut, Plane, UserPlus } from 'lucide-react';
+import {
+  registerWithKeycloak,
+  signInWithGoogle,
+  signInWithKeycloak,
+  signOutEverywhere,
+} from '@/lib/auth-client';
 
 type AuthMode = 'login' | 'signup';
 
 // Login and registration happen on Keycloak's own pages (realm
-// `smartjourney`) - that's where the accounts, the password policy and the
-// Google identity provider live. This card is the launcher: it explains
-// what's about to happen and sends the browser to the right Keycloak screen.
+// `smartjourney`, themed from backend/keycloak/themes/smartjourney) - that's
+// where the accounts, the password policy and the Google identity provider
+// live. This page forwards straight there; the card itself only shows when
+// sign-in failed (?error=...), so the user can read why and retry.
 // Nothing here ever sees a password. Middleware sends unauthenticated users
 // here with ?callbackUrl=<page they wanted>.
 
@@ -37,6 +44,46 @@ export function AuthCard({ mode }: { mode: AuthMode }) {
     return mode === 'signup' ? registerWithKeycloak(callbackUrl) : signInWithKeycloak(callbackUrl);
   };
   const PrimaryIcon = mode === 'login' ? LogIn : UserPlus;
+
+  // Already signed in (typically: Back from the app into the sign-in
+  // pages). Sending this user to Keycloak again either logs the same
+  // account straight back in or, if they type another account's password,
+  // fails with "already authenticated as different user" - so say who
+  // they are and offer the two real choices instead. A session whose token
+  // refresh failed doesn't count; the middleware sends those here to sign in
+  // again.
+  const { data: session, status } = useSession();
+  const signedIn = status === 'authenticated' && !session?.error;
+
+  // Straight on to Keycloak's (themed) form: this page is reached from the
+  // middleware, an expired session and sign-out, and showing a card whose
+  // only job is another sign-in button made two sign-in screens in a row.
+  // Not when there's an error - redirecting then would loop on a failing
+  // Keycloak, and the user needs to see what went wrong.
+  const autoRedirect = !errorCode && status !== 'loading' && !signedIn;
+  const redirected = useRef(false);
+  useEffect(() => {
+    if (!autoRedirect || redirected.current) return;
+    redirected.current = true;
+    void (mode === 'signup' ? registerWithKeycloak(callbackUrl) : signInWithKeycloak(callbackUrl));
+  }, [autoRedirect, mode, callbackUrl]);
+
+  if (signedIn) {
+    return <AlreadySignedIn email={session.user?.email} roles={session.user?.roles} callbackUrl={callbackUrl} />;
+  }
+
+  if (autoRedirect || (status === 'loading' && !errorCode)) {
+    return (
+      <main className="relative flex min-h-screen items-center justify-center overflow-hidden">
+        <Image src="/images/hero-mountains.png" alt="" fill priority className="object-cover" />
+        <div className="absolute inset-0 bg-black/10" />
+        <p className="relative flex items-center gap-2 rounded-2xl bg-white/70 px-5 py-3 text-sm font-medium text-gray-800 shadow-lg backdrop-blur-md">
+          <Loader2 className="h-4 w-4 animate-spin text-brand-600" />
+          {mode === 'signup' ? 'Taking you to sign-up…' : 'Taking you to sign-in…'}
+        </p>
+      </main>
+    );
+  }
 
   return (
     <main className="relative flex min-h-screen items-center justify-center overflow-hidden">
@@ -125,6 +172,74 @@ export function AuthCard({ mode }: { mode: AuthMode }) {
           {pending === 'google' ? <Loader2 className="h-4 w-4 animate-spin" /> : <GoogleIcon />}
           Google
         </button>
+      </section>
+    </main>
+  );
+}
+
+function AlreadySignedIn({
+  email,
+  roles,
+  callbackUrl,
+}: {
+  email?: string | null;
+  roles?: string[];
+  callbackUrl: string;
+}) {
+  const router = useRouter();
+  const [signingOut, setSigningOut] = useState(false);
+  // A signed-in non-admin bounced off /admin lands here with that as the
+  // callback; continuing there would just bounce again.
+  const target = callbackUrl.startsWith('/admin') && !roles?.includes('admin') ? '/home' : callbackUrl;
+
+  return (
+    <main className="relative flex min-h-screen items-center justify-center overflow-hidden">
+      <Image src="/images/hero-mountains.png" alt="" fill priority className="object-cover" />
+      <div className="absolute inset-0 bg-black/10" />
+
+      <section className="relative w-full max-w-md rounded-3xl bg-white/70 p-8 shadow-2xl backdrop-blur-md">
+        <div className="mb-6 flex items-center gap-3">
+          <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-gradient">
+            <Plane className="h-6 w-6 rotate-45 text-white" />
+          </span>
+          <span className="font-serif text-xl font-semibold text-brand-600">SmartJourney</span>
+        </div>
+
+        <h1 className="text-center text-2xl font-bold text-gray-900">You&rsquo;re already signed in</h1>
+        <p className="mt-2 text-center text-sm text-gray-600">
+          {email ? (
+            <>
+              Signed in as <span className="font-semibold text-gray-800">{email}</span>.
+            </>
+          ) : (
+            'You have an active session.'
+          )}{' '}
+          To use a different account, sign out first.
+        </p>
+
+        <div className="mt-6 flex flex-col gap-3">
+          <button
+            type="button"
+            disabled={signingOut}
+            // replace, not push: this page shouldn't be a Back stop either.
+            onClick={() => router.replace(target)}
+            className="flex items-center justify-center gap-2 rounded-xl bg-brand-gradient px-5 py-3 text-sm font-bold text-white shadow-md transition hover:opacity-90 disabled:opacity-60"
+          >
+            Continue to SmartJourney
+          </button>
+          <button
+            type="button"
+            disabled={signingOut}
+            onClick={() => {
+              setSigningOut(true);
+              void signOutEverywhere();
+            }}
+            className="flex items-center justify-center gap-2 rounded-xl border border-gray-300 bg-white px-5 py-2.5 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-gray-50 disabled:opacity-60"
+          >
+            {signingOut ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />}
+            {signingOut ? 'Signing out…' : 'Sign out and use another account'}
+          </button>
+        </div>
       </section>
     </main>
   );

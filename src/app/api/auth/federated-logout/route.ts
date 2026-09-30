@@ -9,6 +9,8 @@ import { keycloakLogoutUrl } from '@/lib/auth';
 // which clears next-auth first, then sends the browser here.
 export async function GET(req: Request) {
   const token = await getToken({ req: req as any });
-  const postLogoutRedirect = `${process.env.NEXTAUTH_URL ?? new URL(req.url).origin}/`;
+  // Back to /login, which forwards straight to Keycloak's sign-in form - so
+  // signing out lands on the sign-in screen rather than the landing page.
+  const postLogoutRedirect = `${process.env.NEXTAUTH_URL ?? new URL(req.url).origin}/login`;
   return NextResponse.json({ url: keycloakLogoutUrl(token?.id_token, postLogoutRedirect) });
 }

@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import { AuthLaunchButton } from '@/components/auth/AuthLaunchButton';
 import { Reveal } from './Reveal';
 import { FloatingOrb } from './FloatingOrb';
 
@@ -22,12 +22,12 @@ export function FinalCta() {
           Join travelers using SmartJourney to build itineraries that fit their time, budget, and
           style — automatically.
         </p>
-        <Link
-          href="/signup"
-          className="mt-2 inline-flex items-center justify-center rounded-2xl bg-white px-10 py-4 text-lg font-semibold text-brand-600 shadow-lg transition duration-200 hover:shadow-xl hover:brightness-105 active:scale-[0.98]"
+        <AuthLaunchButton
+          mode="signup"
+          className="mt-2 rounded-2xl bg-white px-10 py-4 text-lg font-semibold text-brand-600 shadow-lg transition duration-200 hover:shadow-xl hover:brightness-105 active:scale-[0.98]"
         >
           Start planning for free
-        </Link>
+        </AuthLaunchButton>
       </Reveal>
     </section>
   );
