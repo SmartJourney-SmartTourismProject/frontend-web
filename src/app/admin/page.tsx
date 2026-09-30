@@ -2,9 +2,10 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, BarChart3, CalendarDays, LayoutGrid, MapPinned, Users } from 'lucide-react';
+import { ArrowLeft, BarChart3, CalendarDays, LayoutGrid, MapPinned, Ticket, Users } from 'lucide-react';
 import { adminApi } from '@/lib/api';
 import { AnalyticsPanel } from '@/components/admin/AnalyticsPanel';
+import { EntryFeesPanel } from '@/components/admin/EntryFeesPanel';
 import { ModerationPanel } from '@/components/admin/ModerationPanel';
 import { UsersPanel } from '@/components/admin/UsersPanel';
 import type { AdminStats } from '@/lib/types';
@@ -12,11 +13,12 @@ import type { AdminStats } from '@/lib/types';
 // Reaching this page at all requires the Keycloak realm role `admin`:
 // middleware.ts checks it before the page renders, and every /admin API route
 // re-checks it server-side, so the UI is a convenience, not the control.
-type Tab = 'listings' | 'events' | 'users' | 'analytics';
+type Tab = 'listings' | 'events' | 'entry-fees' | 'users' | 'analytics';
 
 const TABS: { id: Tab; label: string; icon: typeof LayoutGrid }[] = [
   { id: 'listings', label: 'Listings', icon: MapPinned },
   { id: 'events', label: 'Events', icon: CalendarDays },
+  { id: 'entry-fees', label: 'Entry fees', icon: Ticket },
   { id: 'users', label: 'Users', icon: Users },
   { id: 'analytics', label: 'Analytics', icon: BarChart3 },
 ];
@@ -56,7 +58,9 @@ export default function AdminPage() {
             label="Awaiting review"
             value={stats?.pending_verifications}
             hint={
-              stats ? `${stats.listings.pending} listings · ${stats.events.pending} events` : undefined
+              stats
+                ? `${stats.listings.pending} listings · ${stats.events.pending} events · ${stats.entry_fees.pending} fees`
+                : undefined
             }
             highlight={(stats?.pending_verifications ?? 0) > 0}
           />
@@ -93,6 +97,7 @@ export default function AdminPage() {
               {label}
               {id === 'listings' && (stats?.listings.pending ?? 0) > 0 && <Pill n={stats!.listings.pending} />}
               {id === 'events' && (stats?.events.pending ?? 0) > 0 && <Pill n={stats!.events.pending} />}
+              {id === 'entry-fees' && (stats?.entry_fees.pending ?? 0) > 0 && <Pill n={stats!.entry_fees.pending} />}
             </button>
           ))}
         </nav>
@@ -100,6 +105,7 @@ export default function AdminPage() {
         <section className="py-6">
           {tab === 'analytics' && <AnalyticsPanel />}
           {tab === 'users' && <UsersPanel onChanged={loadStats} />}
+          {tab === 'entry-fees' && <EntryFeesPanel onChanged={loadStats} />}
           {(tab === 'listings' || tab === 'events') && (
             <ModerationPanel key={tab} kind={tab} onChanged={loadStats} />
           )}

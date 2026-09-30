@@ -3,6 +3,7 @@ import { getSession, signIn } from 'next-auth/react';
 import type {
   AdminActivity,
   AdminAnalytics,
+  AdminEntryFee,
   AdminEvent,
   AdminListing,
   AdminStats,
@@ -12,6 +13,7 @@ import type {
   ChatSessionWithMessages,
   CreateExpensePayload,
   District,
+  EntryFeeQuery,
   Expense,
   ExploreEvent,
   ListingsQuery,
@@ -146,6 +148,15 @@ export const adminApi = {
   rejectEvent: (id: string, reason?: string) =>
     api.post<AdminEvent>(`/admin/events/${id}/reject`, { reason }).then((r) => r.data),
   deleteEvent: (id: string) => api.delete<{ deleted: true }>(`/admin/events/${id}`).then((r) => r.data),
+
+  entryFees: (query: EntryFeeQuery = {}) =>
+    api.get<Paginated<AdminEntryFee>>('/admin/entry-fees', { params: query }).then((r) => r.data),
+  approveEntryFee: (id: string) =>
+    api.post<AdminEntryFee>(`/admin/entry-fees/${id}/approve`).then((r) => r.data),
+  rejectEntryFee: (id: string) =>
+    api.post<AdminEntryFee>(`/admin/entry-fees/${id}/reject`).then((r) => r.data),
+  relinkEntryFee: (id: string, listingId: string | null) =>
+    api.patch<AdminEntryFee>(`/admin/entry-fees/${id}/listing`, { listing_id: listingId }).then((r) => r.data),
 
   users: (query: { q?: string; role?: string; status?: string; page?: number } = {}) =>
     api.get<Paginated<AdminUser>>('/admin/users', { params: query }).then((r) => r.data),

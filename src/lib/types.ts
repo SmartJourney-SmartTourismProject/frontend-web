@@ -146,6 +146,7 @@ export interface AdminStats {
   chat_sessions: number;
   listings: { pending: number; approved: number };
   events: { pending: number; approved: number };
+  entry_fees: { pending: number };
   pending_verifications: number;
 }
 
@@ -162,6 +163,26 @@ export interface AdminEvent extends ExploreEvent {
   is_verified: boolean;
   is_active: boolean;
   source: string;
+}
+
+/** listing_entry_fee (db/migrations/0012): a scraped heritage-site ticket
+ *  price awaiting review. Its own `status`, not the is_verified/is_active
+ *  pair AdminListing/AdminEvent share - see AdminEntryFeesService. */
+export interface AdminEntryFee {
+  id: string;
+  listing_id: string | null;
+  site_name: string;
+  foreign_adult: string | null;   // Prisma Decimal serializes as a string
+  foreign_child: string | null;
+  local_adult: string | null;
+  currency: string;
+  source: string;
+  source_url: string | null;
+  status: ModerationState;
+  fetched_at: string;
+  reviewed_at: string | null;
+  reviewed_by: string | null;
+  travel_listing: { id: string; name: string; district: { id: string; name: string } } | null;
 }
 
 export interface AdminUser {
@@ -220,6 +241,11 @@ export interface ModerationQuery {
   district?: string;
   category?: string;
   q?: string;
+  page?: number;
+}
+
+export interface EntryFeeQuery {
+  status?: ModerationState;
   page?: number;
 }
 
