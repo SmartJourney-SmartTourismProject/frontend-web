@@ -1,7 +1,9 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { Filter, Search } from 'lucide-react';
+import { Skeleton, SkeletonCardRow } from '@/components/ui/Skeleton';
 import { exploreApi } from '@/lib/api';
 import type { Category, District, ExploreEvent, Listing } from '@/lib/types';
 import { ListingCard } from '@/components/explore/ListingCard';
@@ -105,8 +107,16 @@ export default function ExplorePage() {
             <Filter className="h-4 w-4" />
           </button>
 
-          {showFilters && (
-            <div className="absolute right-0 top-14 z-10 w-64 rounded-xl border border-gray-200 bg-white p-4 shadow-lg">
+          <AnimatePresence>
+            {showFilters && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.92, y: -6 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.92, y: -6 }}
+                transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+                style={{ transformOrigin: 'top right' }}
+                className="absolute right-0 top-14 z-10 w-64 rounded-xl border border-gray-200 bg-white p-4 shadow-lg"
+              >
               <label className="mb-3 block text-xs font-semibold text-gray-600">
                 District
                 <select
@@ -137,8 +147,9 @@ export default function ExplorePage() {
                   ))}
                 </select>
               </label>
-            </div>
-          )}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         {isFiltering ? (
@@ -147,11 +158,11 @@ export default function ExplorePage() {
               Search results
             </h2>
             {searching ? (
-              <p className="text-sm text-gray-400">Searching…</p>
+              <SkeletonCardRow count={6} />
             ) : searchResults && searchResults.length > 0 ? (
               <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 md:grid-cols-6">
-                {searchResults.map((listing) => (
-                  <ListingCard key={listing.id} listing={listing} />
+                {searchResults.map((listing, i) => (
+                  <ListingCard key={listing.id} listing={listing} index={i} />
                 ))}
               </div>
             ) : (
@@ -159,7 +170,14 @@ export default function ExplorePage() {
             )}
           </section>
         ) : loading ? (
-          <p className="text-sm text-gray-400">Loading…</p>
+          <div className="flex flex-col gap-8" role="status" aria-label="Loading">
+            {[0, 1, 2].map((row) => (
+              <div key={row}>
+                <Skeleton className="mb-3 h-3 w-48" />
+                <SkeletonCardRow count={6} />
+              </div>
+            ))}
+          </div>
         ) : (
           <>
             <ListingRow
@@ -178,9 +196,12 @@ export default function ExplorePage() {
               title="Local Events & Cultural Festivals"
               seeAllHref="/explore/events"
               emptyMessage="No upcoming events yet."
+              marquee={Math.min(events.length, 20)}
             >
               {events.length > 0
-                ? events.slice(0, 20).map((event) => <EventCard key={event.id} event={event} />)
+                ? events
+                    .slice(0, 20)
+                    .map((event, i) => <EventCard key={event.id} event={event} index={i} />)
                 : undefined}
             </ListingRow>
           </>

@@ -2,7 +2,7 @@
 
 import { CalendarDays, MapPinned, Wallet } from 'lucide-react';
 import { motion, useReducedMotion } from 'framer-motion';
-import { Reveal } from './Reveal';
+import { Reveal } from '@/components/motion/Reveal';
 
 const FEATURES = [
   {

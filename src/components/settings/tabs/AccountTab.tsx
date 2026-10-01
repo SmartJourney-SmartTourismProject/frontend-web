@@ -1,13 +1,27 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { ExternalLink, LogOut, Pencil } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { AnimatePresence, LayoutGroup, motion, useReducedMotion, type Variants } from 'framer-motion';
+import { Camera, Check, ExternalLink, Loader2, LogOut, Pencil, Trash2 } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { Toggle } from '@/components/ui/Toggle';
 import { exploreApi, usersApi } from '@/lib/api';
 import { changePasswordInKeycloak, signOutEverywhere } from '@/lib/auth-client';
-import { initials } from '@/lib/initials';
+import { Avatar } from '@/components/ui/Avatar';
+import { useProfileStore } from '@/lib/profile-store';
+import { resizeAvatar } from '@/lib/resize-avatar';
 import type { Me, Tag, TravelStyle, UpdatePreferencesPayload } from '@/lib/types';
+import { EASE_OUT, SPRING, SPRING_BOUNCY } from '@/lib/motion';
+
+// Sections rise in one after another when the tab opens.
+const STAGGER: Variants = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.08 } },
+};
+const SECTION: Variants = {
+  hidden: { opacity: 0, y: 14 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: EASE_OUT } },
+};
 
 // Name, email and password live in Keycloak and come from the next-auth
 // session; editing them happens on Keycloak's own screens (password:
@@ -39,9 +53,25 @@ export function AccountTab() {
   const [saving, setSaving] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
 
+  const reduced = useReducedMotion();
+  // Every change here saves as you make it (there is no Save-all button), so
+  // a brief "Saved" confirmation is what tells the traveler it worked.
+  const [justSaved, setJustSaved] = useState(false);
+  const savedTimer = useRef<ReturnType<typeof setTimeout>>();
+  const flashSaved = () => {
+    setJustSaved(true);
+    clearTimeout(savedTimer.current);
+    savedTimer.current = setTimeout(() => setJustSaved(false), 1800);
+  };
+  useEffect(() => () => clearTimeout(savedTimer.current), []);
+
   const [phoneDraft, setPhoneDraft] = useState('');
   const [editingPhone, setEditingPhone] = useState(false);
   const [budgetDraft, setBudgetDraft] = useState('');
+  const fileRef = useRef<HTMLInputElement>(null);
+  const avatarUrl = useProfileStore((s) => s.avatarUrl);
+  const setAvatarUrl = useProfileStore((s) => s.setAvatarUrl);
+  const setLocationEnabled = useProfileStore((s) => s.setLocationEnabled);
 
   useEffect(() => {
     let cancelled = false;
@@ -49,6 +79,7 @@ export function AccountTab() {
       .then(([meRes, tagsRes]) => {
         if (cancelled) return;
         setMe(meRes);
+        setAvatarUrl(meRes.avatar_url);
         setTags(tagsRes);
         setBudgetDraft(meRes.preferences.default_budget?.toString() ?? '');
       })
@@ -58,6 +89,7 @@ export function AccountTab() {
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- load once on open
   }, []);
 
   const savePhone = async () => {
@@ -68,6 +100,7 @@ export function AccountTab() {
       const updated = await usersApi.updateMe({ phone: phoneDraft.trim() || null });
       setMe({ ...me, ...updated });
       setEditingPhone(false);
+      flashSaved();
     } catch {
       setSaveError('Could not save your phone number.');
     } finally {
@@ -75,14 +108,40 @@ export function AccountTab() {
     }
   };
 
+  const saveAvatar = async (next: string | null) => {
+    setSaving('avatar');
+    setSaveError(null);
+    try {
+      await usersApi.updateMe({ avatar_url: next });
+      setAvatarUrl(next);
+      flashSaved();
+    } catch {
+      setSaveError('Could not save your profile picture.');
+    } finally {
+      setSaving(null);
+    }
+  };
+
+  const onPickAvatar = async (file: File | undefined) => {
+    if (!file) return;
+    try {
+      await saveAvatar(await resizeAvatar(file));
+    } catch (err: unknown) {
+      setSaveError(err instanceof Error ? err.message : 'Could not use that image.');
+    }
+  };
+
   const saveLocation = async (enabled: boolean) => {
     if (!me) return;
     const previous = me.location_enabled;
     setMe({ ...me, location_enabled: enabled }); // optimistic - it's a toggle
+    setLocationEnabled(enabled); // the open chat starts/stops using location now
     try {
       await usersApi.updateMe({ location_enabled: enabled });
+      flashSaved();
     } catch {
       setMe((m) => (m ? { ...m, location_enabled: previous } : m));
+      setLocationEnabled(previous);
       setSaveError('Could not update location access.');
     }
   };
@@ -94,6 +153,7 @@ export function AccountTab() {
     try {
       const preferences = await usersApi.updatePreferences(patch);
       setMe({ ...me, preferences });
+      flashSaved();
     } catch (err: unknown) {
       const message = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
       setSaveError(message ?? 'Could not save your preferences.');
@@ -124,16 +184,54 @@ export function AccountTab() {
   const prefs = me?.preferences;
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex items-center gap-4">
-        <span className="flex h-14 w-14 items-center justify-center rounded-full bg-brand-gradient text-lg font-semibold text-white">
-          {initials(user?.name ?? user?.email)}
-        </span>
-        <div>
-          <p className="text-base font-bold text-gray-900">{displayName}</p>
-          <p className="text-sm text-gray-500">{isAdmin ? 'Platform admin' : 'Traveler account'}</p>
+    <motion.div
+      initial={reduced ? false : 'hidden'}
+      animate="visible"
+      variants={STAGGER}
+      className="flex flex-col gap-6"
+    >
+      <motion.div variants={SECTION} className="flex items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <div className="relative">
+            <Avatar src={avatarUrl} name={user?.name ?? user?.email} className="h-16 w-16 text-xl" />
+            <button
+              type="button"
+              onClick={() => fileRef.current?.click()}
+              disabled={saving === 'avatar'}
+              aria-label="Change profile picture"
+              title="Change profile picture"
+              className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full border-2 border-white bg-brand-600 text-white shadow transition hover:bg-brand-700 disabled:opacity-60"
+            >
+              {saving === 'avatar' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Camera className="h-3.5 w-3.5" />}
+            </button>
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              className="hidden"
+              onChange={(e) => {
+                void onPickAvatar(e.target.files?.[0]);
+                e.target.value = ''; // allow picking the same file again
+              }}
+            />
+          </div>
+          <div>
+            <p className="text-base font-bold text-gray-900">{displayName}</p>
+            <p className="text-sm text-gray-500">{isAdmin ? 'Platform admin' : 'Traveler account'}</p>
+            {avatarUrl && (
+              <button
+                type="button"
+                onClick={() => void saveAvatar(null)}
+                disabled={saving === 'avatar'}
+                className="mt-1 flex items-center gap-1 text-xs font-medium text-gray-500 hover:text-red-600 disabled:opacity-60"
+              >
+                <Trash2 className="h-3 w-3" /> Remove photo
+              </button>
+            )}
+          </div>
         </div>
-      </div>
+        <SaveStatus saving={saving !== null} saved={justSaved} />
+      </motion.div>
 
       {loadError && (
         <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
@@ -146,7 +244,7 @@ export function AccountTab() {
         </p>
       )}
 
-      <section>
+      <motion.section variants={SECTION}>
         <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Profile</p>
 
         <Field
@@ -206,9 +304,9 @@ export function AccountTab() {
             )
           }
         />
-      </section>
+      </motion.section>
 
-      <section>
+      <motion.section variants={SECTION}>
         <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Travel preferences</p>
         <p className="mt-1 text-xs text-gray-500">
           Used to fill in what you leave out of a trip request — interests, pace and budget.
@@ -221,20 +319,34 @@ export function AccountTab() {
             {tags.map((t) => {
               const selected = prefs?.travel_interests.includes(t.tag) ?? false;
               return (
-                <button
+                <motion.button
                   key={t.tag}
                   type="button"
                   onClick={() => toggleInterest(t.tag)}
                   disabled={!me || saving === `tag:${t.tag}`}
                   aria-pressed={selected}
-                  className={`rounded-full border px-3 py-1 text-xs font-medium transition disabled:opacity-60 ${
-                    selected
-                      ? 'border-brand-600 bg-brand-gradient text-white'
-                      : 'border-gray-300 bg-white text-gray-700 hover:border-brand-300 hover:bg-brand-50'
+                  whileTap={reduced ? undefined : { scale: 0.9 }}
+                  transition={SPRING}
+                  className={`relative overflow-hidden rounded-full border px-3 py-1 text-xs font-medium transition-colors duration-200 disabled:opacity-60 ${
+                    selected ? 'border-brand-600' : 'border-gray-300 hover:border-brand-300'
                   }`}
                 >
-                  {t.label}
-                </button>
+                  {/* The brand gradient can't be color-transitioned, so it grows in on its own layer. */}
+                  <motion.span
+                    aria-hidden
+                    className="absolute inset-0 bg-brand-gradient"
+                    initial={false}
+                    animate={{ opacity: selected ? 1 : 0, scale: selected ? 1 : 0.6 }}
+                    transition={reduced ? { duration: 0 } : SPRING}
+                  />
+                  <span
+                    className={`relative transition-colors duration-200 ${
+                      selected ? 'text-white' : 'text-gray-700'
+                    }`}
+                  >
+                    {t.label}
+                  </span>
+                </motion.button>
               );
             })}
           </div>
@@ -242,26 +354,36 @@ export function AccountTab() {
 
         <div className="border-t border-gray-100 py-3">
           <p className="text-xs font-semibold text-brand-600">TRAVEL STYLE</p>
-          <div className="mt-2 grid grid-cols-3 gap-2">
-            {TRAVEL_STYLES.map((s) => {
-              const selected = prefs?.travel_style === s.id;
-              return (
-                <button
-                  key={s.id}
-                  type="button"
-                  onClick={() => void savePreferences({ travel_style: selected ? null : s.id }, 'style')}
-                  disabled={!me || saving === 'style'}
-                  aria-pressed={selected}
-                  className={`rounded-xl border p-3 text-left transition disabled:opacity-60 ${
-                    selected ? 'border-brand-600 bg-brand-50' : 'border-gray-200 hover:border-brand-300'
-                  }`}
-                >
-                  <p className="text-sm font-semibold text-gray-900">{s.label}</p>
-                  <p className="mt-0.5 text-xs text-gray-500">{s.hint}</p>
-                </button>
-              );
-            })}
-          </div>
+          <LayoutGroup id="travel-style">
+            <div className="mt-2 grid grid-cols-3 gap-2">
+              {TRAVEL_STYLES.map((s) => {
+                const selected = prefs?.travel_style === s.id;
+                return (
+                  <motion.button
+                    key={s.id}
+                    type="button"
+                    onClick={() => void savePreferences({ travel_style: selected ? null : s.id }, 'style')}
+                    disabled={!me || saving === 'style'}
+                    aria-pressed={selected}
+                    whileTap={reduced ? undefined : { scale: 0.96 }}
+                    transition={SPRING}
+                    className="relative rounded-xl border border-gray-200 p-3 text-left transition-colors hover:border-brand-300 disabled:opacity-60"
+                  >
+                    {selected && (
+                      // One highlight shared by the three cards: it glides to whichever is picked.
+                      <motion.span
+                        layoutId="travel-style-active"
+                        transition={reduced ? { duration: 0 } : SPRING}
+                        className="absolute inset-0 rounded-xl border-2 border-brand-600 bg-brand-50"
+                      />
+                    )}
+                    <p className="relative text-sm font-semibold text-gray-900">{s.label}</p>
+                    <p className="relative mt-0.5 text-xs text-gray-500">{s.hint}</p>
+                  </motion.button>
+                );
+              })}
+            </div>
+          </LayoutGroup>
         </div>
 
         <div className="flex items-center justify-between gap-4 border-t border-gray-100 py-3">
@@ -295,9 +417,9 @@ export function AccountTab() {
             </select>
           </div>
         </div>
-      </section>
+      </motion.section>
 
-      <section>
+      <motion.section variants={SECTION}>
         <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Privacy</p>
         <div className="mt-3 flex items-center justify-between border-t border-gray-100 py-3">
           <div>
@@ -310,9 +432,9 @@ export function AccountTab() {
             label="Enable location access"
           />
         </div>
-      </section>
+      </motion.section>
 
-      <section>
+      <motion.section variants={SECTION}>
         <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Security</p>
         <div className="mt-3 flex items-center justify-between border-t border-gray-100 py-3">
           <div>
@@ -340,7 +462,41 @@ export function AccountTab() {
             <LogOut className="h-3.5 w-3.5" /> Sign out
           </button>
         </div>
-      </section>
+      </motion.section>
+    </motion.div>
+  );
+}
+
+function SaveStatus({ saving, saved }: { saving: boolean; saved: boolean }) {
+  return (
+    <div className="h-7 min-w-[6rem] text-right" aria-live="polite">
+      <AnimatePresence mode="wait" initial={false}>
+        {saving ? (
+          <motion.span
+            key="saving"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-600"
+          >
+            <Loader2 className="h-3.5 w-3.5 animate-spin" /> Saving…
+          </motion.span>
+        ) : saved ? (
+          <motion.span
+            key="saved"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700"
+          >
+            {/* The spinner "morphs" into a check that pops in with a spring. */}
+            <motion.span initial={{ scale: 0, rotate: -30 }} animate={{ scale: 1, rotate: 0 }} transition={SPRING_BOUNCY}>
+              <Check className="h-3.5 w-3.5" />
+            </motion.span>
+            Saved
+          </motion.span>
+        ) : null}
+      </AnimatePresence>
     </div>
   );
 }

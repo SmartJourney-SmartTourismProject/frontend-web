@@ -1,6 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import clsx from 'clsx';
+import { CountUp } from '@/components/ui/CountUp';
+import { Skeleton } from '@/components/ui/Skeleton';
+import { RevealCard } from '@/components/motion/Reveal';
+import { EmptyIllustration } from '@/components/budget/EmptyIllustration';
 import { budgetApi, tripsApi } from '@/lib/api';
 import type { Expense, Trip, TripBudget, TripBudgetSummary } from '@/lib/types';
 import { BudgetsByTripPanel } from '@/components/budget/BudgetsByTripPanel';
@@ -48,11 +54,18 @@ export default function BudgetTrackerPage() {
   if (trips.length === 0 && !initialLoading) {
     return (
       <div className="flex h-full items-center justify-center text-center">
-        <div>
-          <h1 className="font-serif text-2xl font-semibold text-brand-600">Budget tracker</h1>
+        <div className="flex flex-col items-center">
+          <EmptyIllustration className="h-28 w-32" />
+          <h1 className="mt-2 font-serif text-2xl font-semibold text-brand-600">Budget tracker</h1>
           <p className="mt-1 text-sm text-gray-500">
             Save a trip from the Home chat to start tracking its budget.
           </p>
+          <Link
+            href="/home"
+            className="mt-5 rounded-full bg-brand-gradient px-6 py-2.5 text-sm font-semibold text-white shadow-md transition hover:scale-105 hover:shadow-glow active:scale-95"
+          >
+            Plan a trip
+          </Link>
         </div>
       </div>
     );
@@ -81,13 +94,22 @@ export default function BudgetTrackerPage() {
           </select>
         </div>
 
+        {!budget && <BudgetSkeleton />}
+
         {budget && (
           <>
             <div className="mt-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
-              <StatCard label="Total budget" value={budget.total} currency={budget.trip.currency} />
-              <StatCard label="Spent so far" value={budget.spent} currency={budget.trip.currency} />
-              <StatCard label="Remaining" value={budget.remaining} currency={budget.trip.currency} />
+              <StatCard index={0} label="Total budget" value={budget.total} currency={budget.trip.currency} />
+              <StatCard index={1} label="Spent so far" value={budget.spent} currency={budget.trip.currency} />
               <StatCard
+                index={2}
+                label="Remaining"
+                value={budget.remaining}
+                currency={budget.trip.currency}
+                negativeIsBad
+              />
+              <StatCard
+                index={3}
                 label="Daily average"
                 value={budget.daily_average}
                 currency={budget.trip.currency}
@@ -134,19 +156,50 @@ function StatCard({
   value,
   currency,
   sub,
+  index,
+  negativeIsBad = false,
 }: {
   label: string;
   value: number | null;
   currency: string;
   sub?: string;
+  index: number;
+  /** Turns the figure red when it drops below zero (e.g. Remaining when overspent). */
+  negativeIsBad?: boolean;
 }) {
+  const over = negativeIsBad && value != null && value < 0;
   return (
-    <div className="rounded-2xl border border-gray-200 p-4">
-      <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">{label}</p>
-      <p className="mt-1 text-xl font-bold text-gray-900">
-        {value != null ? `${value.toLocaleString()} ${currency}` : '—'}
-      </p>
-      {sub && <p className="mt-0.5 text-xs text-gray-400">{sub}</p>}
+    <RevealCard index={index}>
+      <div className="rounded-2xl border border-gray-200 p-4 transition duration-300 hover:-translate-y-0.5 hover:shadow-lg">
+        <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">{label}</p>
+        <p className={clsx('mt-1 text-xl font-bold transition-colors duration-500', over ? 'text-red-600' : 'text-gray-900')}>
+          {value != null ? (
+            <>
+              <CountUp value={value} decimals={Number.isInteger(value) ? 0 : 2} /> {currency}
+            </>
+          ) : (
+            '—'
+          )}
+        </p>
+        {sub && <p className="mt-0.5 text-xs text-gray-400">{sub}</p>}
+      </div>
+    </RevealCard>
+  );
+}
+
+/** Layout-matched placeholder so the page doesn't pop in from blank. */
+function BudgetSkeleton() {
+  return (
+    <div role="status" aria-label="Loading budget">
+      <div className="mt-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
+        {[0, 1, 2, 3].map((i) => (
+          <Skeleton key={i} className="h-24 rounded-2xl" />
+        ))}
+      </div>
+      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <Skeleton className="h-64 rounded-2xl" />
+        <Skeleton className="h-64 rounded-2xl" />
+      </div>
     </div>
   );
 }

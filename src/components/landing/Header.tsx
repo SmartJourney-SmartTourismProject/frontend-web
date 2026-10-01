@@ -1,20 +1,51 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { Plane } from 'lucide-react';
+import clsx from 'clsx';
 import { AuthLaunchButton } from '@/components/auth/AuthLaunchButton';
 
 const NAV_LINKS = [
-  { href: '#features', label: 'Features' },
+  { href: '#destinations', label: 'Destinations' },
   { href: '#how-it-works', label: 'How it works' },
-  { href: '#why-us', label: 'Why SmartJourney' },
+  { href: '#features', label: 'Features' },
 ];
 
 export function Header() {
+  // Condenses once the page scrolls: tighter padding, smaller logo and a
+  // white background so it stays readable over any section.
+  const [scrolled, setScrolled] = useState(false);
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 40);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
   return (
-    <header className="absolute inset-x-0 top-0 z-30 flex items-center justify-between bg-black/30 px-6 py-4 backdrop-blur-md sm:px-10">
+    <header
+      className={clsx(
+        'fixed inset-x-0 top-0 z-30 flex items-center justify-between px-6 backdrop-blur-xl transition-all duration-300 sm:px-10',
+        scrolled
+          ? 'border-b border-brand-100 bg-white/95 py-2 shadow-lg shadow-brand-900/10'
+          : 'border-b border-brand-100/60 bg-white/90 py-4',
+      )}
+    >
       <div className="flex items-center gap-2">
-        <Plane className="h-7 w-7 rotate-45 text-sky-300" />
-        <span className="font-serif text-2xl font-semibold text-white">SmartJourney</span>
+        <Plane
+          className={clsx(
+            'rotate-45 text-brand-500 transition-all duration-300',
+            scrolled ? 'h-6 w-6' : 'h-7 w-7',
+          )}
+        />
+        <span
+          className={clsx(
+            'font-serif font-semibold text-brand-700 transition-all duration-300',
+            scrolled ? 'text-lg sm:text-xl' : 'text-xl sm:text-2xl',
+          )}
+        >
+          SmartJourney
+        </span>
       </div>
 
       <nav className="hidden items-center gap-8 md:flex">
@@ -22,23 +53,23 @@ export function Header() {
           <a
             key={link.href}
             href={link.href}
-            className="text-sm font-medium text-white/85 transition hover:text-white"
+            className="text-sm font-medium text-gray-600 transition hover:text-brand-600"
           >
             {link.label}
           </a>
         ))}
       </nav>
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2 sm:gap-3">
         <AuthLaunchButton
           mode="login"
-          className="rounded-xl border border-white px-5 py-2.5 text-sm font-bold text-white transition duration-200 hover:bg-white/10 sm:px-6"
+          className="whitespace-nowrap rounded-xl border border-brand-500 px-3 py-2 text-sm font-bold text-brand-600 sm:py-2.5 transition duration-200 hover:scale-[1.03] hover:bg-brand-50 sm:px-6"
         >
           Log In
         </AuthLaunchButton>
         <AuthLaunchButton
           mode="signup"
-          className="rounded-xl bg-brand-gradient px-5 py-2.5 text-sm font-bold text-white shadow-md transition duration-200 hover:shadow-lg hover:brightness-110 active:scale-[0.97] sm:px-6"
+          className="whitespace-nowrap rounded-xl bg-brand-gradient px-3 py-2 text-sm font-bold text-white sm:py-2.5 shadow-md transition duration-200 hover:scale-[1.03] hover:shadow-glow active:scale-[0.97] sm:px-6"
         >
           Sign Up
         </AuthLaunchButton>

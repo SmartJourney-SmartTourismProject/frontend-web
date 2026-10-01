@@ -16,3 +16,23 @@ if (realWindow) {
     writable: true,
   });
 }
+
+// jsdom has no IntersectionObserver, which framer-motion's whileInView /
+// useInView need at mount. A no-op stand-in (never reports an intersection)
+// keeps scroll-triggered components mountable; specs that care about the
+// final value of an animated number mock CountUp instead.
+if (typeof globalThis.IntersectionObserver === 'undefined') {
+  class NoopIntersectionObserver {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+    takeRecords() {
+      return [];
+    }
+  }
+  Object.defineProperty(globalThis, 'IntersectionObserver', {
+    value: NoopIntersectionObserver,
+    configurable: true,
+    writable: true,
+  });
+}

@@ -1,13 +1,14 @@
 import Link from 'next/link';
 import { Plane } from 'lucide-react';
+import { DESTINATIONS } from '@/lib/landing-destinations';
 
 const FOOTER_LINKS = [
   {
     heading: 'Product',
     links: [
+      { label: 'Destinations', href: '#destinations' },
       { label: 'Features', href: '#features' },
       { label: 'How it works', href: '#how-it-works' },
-      { label: 'Why SmartJourney', href: '#why-us' },
     ],
   },
   {

@@ -1,3 +1,4 @@
+import { ProgressBar } from '@/components/ui/ProgressBar';
 import type { TripBudgetSummary } from '@/lib/types';
 
 const STATUS_LABEL: Record<TripBudgetSummary['status'], string> = {
@@ -30,16 +31,22 @@ export function BudgetsByTripPanel({
         How each saved itinerary is tracking against what you set aside.
       </p>
 
-      <div className="mt-4 flex flex-col gap-4">
+      <div className="mt-3 flex flex-col gap-1">
         {trips.length === 0 && <p className="text-sm text-gray-400">No trips with a budget yet.</p>}
         {trips.map((trip) => {
           const pct = trip.budget ? Math.min(100, Math.round((trip.spent / trip.budget) * 100)) : 0;
           const style = STATUS_STYLE[trip.status];
+          const selected = trip.id === selectedTripId;
           return (
             <button
               key={trip.id}
               onClick={() => onSelect(trip.id)}
-              className={`text-left transition ${trip.id === selectedTripId ? '' : 'opacity-70 hover:opacity-100'}`}
+              aria-pressed={selected}
+              className={`rounded-xl p-3 text-left transition duration-200 ${
+                selected
+                  ? 'bg-brand-50 ring-1 ring-brand-300'
+                  : 'hover:-translate-y-0.5 hover:bg-gray-50 hover:shadow-sm'
+              }`}
             >
               <div className="flex items-center justify-between text-sm">
                 <span className="flex items-center gap-2 font-semibold text-gray-900">
@@ -53,9 +60,9 @@ export function BudgetsByTripPanel({
                   {trip.currency}
                 </span>
               </div>
-              <div className="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-gray-100">
-                <div className={`h-full rounded-full ${style.bar}`} style={{ width: `${pct}%` }} />
-              </div>
+              {/* Fills from 0 on view; the color comes from the status, so it
+                  goes green -> amber -> red as a trip nears and passes its budget. */}
+              <ProgressBar percent={pct} barClassName={style.bar} className="mt-2" />
             </button>
           );
         })}

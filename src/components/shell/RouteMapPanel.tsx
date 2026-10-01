@@ -65,6 +65,59 @@ function haversineKm([aLat, aLon]: [number, number], [bLat, bLon]: [number, numb
   return 2 * R * Math.asin(Math.sqrt(h));
 }
 
+const prefersReducedMotion = () =>
+  typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/**
+ * Numbered pin. The drop-in animation lives on the inner element because
+ * Leaflet positions the outer marker element with its own transform, and a
+ * second transform there would fight it. `pulse` adds a ring to the final stop.
+ */
+function pinIcon(label: string, delayMs: number, opts: { start?: boolean; pulse?: boolean } = {}) {
+  // Single stop: a 28px circle. Several stops sharing the place: a pill wide
+  // enough for "3·7·8", still centred on the point.
+  const width = label.length <= 2 ? 28 : 16 + label.length * 7;
+  return L.divIcon({
+    className: '',
+    iconSize: [width, 28],
+    iconAnchor: [width / 2, 14],
+    popupAnchor: [0, -14],
+    html: `<div class="sj-pin animate-marker-drop${opts.start ? ' sj-pin-start' : ''}${
+      width > 28 ? ' sj-pin-multi' : ''
+    }" style="animation-delay:${delayMs}ms">${
+      opts.pulse ? '<span class="sj-pin-ring animate-pulse-ring"></span>' : ''
+    }<span class="relative">${label}</span></div>`,
+  });
+}
+
+/** Draws a route line from its start to its end instead of popping it in whole. */
+function animateRouteIn(line: L.Polyline, dashed: boolean) {
+  const el = line.getElement() as SVGPathElement | undefined;
+  if (!el || prefersReducedMotion()) return;
+  if (dashed) {
+    // The dashed fallback already uses stroke-dasharray for its look, so it
+    // fades in rather than being "drawn".
+    el.style.opacity = '0';
+    el.getBoundingClientRect();
+    el.style.transition = 'opacity 0.8s ease-out';
+    el.style.opacity = '1';
+    return;
+  }
+  const length = el.getTotalLength();
+  el.style.strokeDasharray = `${length}`;
+  el.style.strokeDashoffset = `${length}`;
+  el.getBoundingClientRect(); // commit the start state before transitioning
+  el.style.transition = 'stroke-dashoffset 1.6s ease-out';
+  el.style.strokeDashoffset = '0';
+  // Clear afterwards: zooming rewrites the path, and a stale dash length from
+  // the old geometry would leave gaps in the line.
+  window.setTimeout(() => {
+    el.style.strokeDasharray = '';
+    el.style.strokeDashoffset = '';
+    el.style.transition = '';
+  }, 1700);
+}
+
 function formatDuration(minutes: number): string {
   const total = Math.round(minutes);
   if (total < 60) return `${total} min`;
@@ -124,7 +177,27 @@ export function RouteMapPanel() {
       routeLayersRef.current = [];
       if (itinerary.length === 0) return;
 
+      // Everything that will be plotted, gathered up front so the camera can
+      // start flying to it straight away while pins and routes build in.
       const allPoints: [number, number][] = [];
+      if (startLocation && typeof startLocation.lat === 'number' && typeof startLocation.lon === 'number') {
+        allPoints.push([startLocation.lat, startLocation.lon]);
+      }
+      for (const day of itinerary) {
+        for (const item of day.items) {
+          if (typeof item.lat === 'number' && typeof item.lon === 'number') {
+            allPoints.push([item.lat, item.lon]);
+          }
+        }
+      }
+      const reduceMotion = prefersReducedMotion();
+      if (allPoints.length > 0) {
+        const bounds = L.latLngBounds(allPoints);
+        if (reduceMotion) map!.fitBounds(bounds, { padding: [30, 30] });
+        else map!.flyToBounds(bounds, { padding: [30, 30], duration: 1.2 });
+      }
+      const lastStopIndex = allPoints.length - 1;
+      let pinIndex = 0;
       let stopNumber = 1;
       let totalKm = 0;
 
@@ -135,11 +208,31 @@ export function RouteMapPanel() {
       let originPoint: [number, number] | null = null;
       if (startLocation && typeof startLocation.lat === 'number' && typeof startLocation.lon === 'number') {
         originPoint = [startLocation.lat, startLocation.lon];
-        L.marker(originPoint)
+        L.marker(originPoint, { icon: pinIcon('S', 0, { start: true }) })
           .bindPopup(`<b>Start${startLocation.name ? `: ${startLocation.name}` : ''}</b>`)
           .addTo(markersLayer!);
-        allPoints.push(originPoint);
+        pinIndex++;
       }
+
+      // Stops at the same place (returning to the hotel, a restaurant used
+      // twice) used to get one pin each, stacked exactly on top of one
+      // another - only the last number was visible, so the map looked like
+      // it was missing stops. One pin per place instead, labelled with every
+      // stop number there and listing them all in its popup.
+      const placeKey = (lat: number, lon: number) => `${lat.toFixed(5)},${lon.toFixed(5)}`;
+      const stopsAtPlace = new Map<string, { number: number; name: string; time?: string | null }[]>();
+      {
+        let n = 1;
+        for (const day of itinerary) {
+          for (const item of day.items) {
+            if (typeof item.lat !== 'number' || typeof item.lon !== 'number') continue;
+            const key = placeKey(item.lat, item.lon);
+            stopsAtPlace.set(key, [...(stopsAtPlace.get(key) ?? []), { number: n, name: item.name, time: item.time }]);
+            n++;
+          }
+        }
+      }
+      const pinnedPlaces = new Set<string>();
 
       for (let dayIdx = 0; dayIdx < itinerary.length; dayIdx++) {
         const day = itinerary[dayIdx];
@@ -148,11 +241,26 @@ export function RouteMapPanel() {
         const dayPoints: [number, number][] = dayIdx === 0 && originPoint ? [originPoint] : [];
         for (const item of day.items) {
           if (typeof item.lat !== 'number' || typeof item.lon !== 'number') continue;
-          L.marker([item.lat, item.lon])
-            .bindPopup(`<b>${stopNumber}. ${item.name}</b><br>${item.time ?? ''}<br>${item.notes ?? ''}`)
-            .addTo(markersLayer!);
+          // Each pin drops 80ms after the last; the final stop also pulses.
+          const key = placeKey(item.lat, item.lon);
+          const here = stopsAtPlace.get(key) ?? [];
+          if (!pinnedPlaces.has(key)) {
+            pinnedPlaces.add(key);
+            const isLast = here.some((stop) => stop.number === lastStopIndex + (originPoint ? 0 : 1));
+            const popup =
+              here.length > 1
+                ? here.map((stop) => `<b>${stop.number}. ${stop.name}</b> ${stop.time ?? ''}`).join('<br>')
+                : `<b>${stopNumber}. ${item.name}</b><br>${item.time ?? ''}<br>${item.notes ?? ''}`;
+            L.marker([item.lat, item.lon], {
+              icon: pinIcon(here.map((stop) => stop.number).join('·') || String(stopNumber), pinIndex * 80, {
+                pulse: isLast,
+              }),
+            })
+              .bindPopup(popup)
+              .addTo(markersLayer!);
+          }
           dayPoints.push([item.lat, item.lon]);
-          allPoints.push([item.lat, item.lon]);
+          pinIndex++;
           stopNumber++;
         }
 
@@ -182,12 +290,10 @@ export function RouteMapPanel() {
         totalKm += dayKm;
 
         line.bindTooltip(label, { sticky: true }).addTo(map!);
+        animateRouteIn(line, !roadRoute);
         routeLayersRef.current.push(line);
       }
 
-      if (allPoints.length > 0) {
-        map!.fitBounds(L.latLngBounds(allPoints), { padding: [30, 30] });
-      }
       setTotalKm(totalKm > 0 ? totalKm : null);
     }
 

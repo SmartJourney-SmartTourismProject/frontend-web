@@ -1,5 +1,5 @@
 import { Compass, ShieldCheck, Sparkles, Wallet } from 'lucide-react';
-import { Reveal, StaggerGroup, StaggerItem } from './Reveal';
+import { Reveal, StaggerGroup, StaggerItem } from '@/components/motion/Reveal';
 import { FloatingOrb } from './FloatingOrb';
 
 const BENEFITS = [
@@ -31,7 +31,7 @@ const BENEFITS = [
 
 export function Benefits() {
   return (
-    <section className="relative overflow-hidden bg-brand-900 px-6 py-24 sm:px-10 lg:px-20">
+    <section className="relative overflow-hidden bg-brand-800 px-6 py-24 sm:px-10 lg:px-20">
       <FloatingOrb
         className="pointer-events-none absolute -left-20 top-10 h-72 w-72 rounded-full bg-accent-500/20 blur-3xl"
         duration={9}

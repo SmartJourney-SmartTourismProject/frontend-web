@@ -7,6 +7,9 @@ import type {
   AdminEvent,
   AdminListing,
   AdminStats,
+  LlmConfig,
+  LlmProvider,
+  LlmTestResult,
   AdminUser,
   Category,
   ChatSession,
@@ -82,12 +85,18 @@ export const chatApi = {
   getSession: (id: string) =>
     api.get<ChatSessionWithMessages>(`/chat/sessions/${id}`).then((r) => r.data),
 
-  sendMessage: (id: string, message: string, clientGps?: { lat: number; lon: number }) =>
+  sendMessage: (
+    id: string,
+    message: string,
+    clientGps?: { lat: number; lon: number },
+    signal?: AbortSignal,
+  ) =>
     api
-      .post<TripPlanResponse>(`/chat/sessions/${id}/messages`, {
-        message,
-        client_gps: clientGps,
-      })
+      .post<TripPlanResponse>(
+        `/chat/sessions/${id}/messages`,
+        { message, client_gps: clientGps },
+        { signal },
+      )
       .then((r) => r.data),
 
   renameSession: (id: string, title: string) =>
@@ -117,6 +126,13 @@ export const exploreApi = {
 // non-admins off /admin, so a 403 from these means the session went stale.
 export const adminApi = {
   stats: () => api.get<AdminStats>('/admin/stats').then((r) => r.data),
+
+  llm: () => api.get<LlmConfig>('/admin/llm').then((r) => r.data),
+  setLlmChain: (chain: string[]) => api.put<LlmConfig>('/admin/llm/chain', { chain }).then((r) => r.data),
+  setLlmKey: (provider: LlmProvider, key: string) =>
+    api.put<LlmConfig>(`/admin/llm/keys/${provider}`, { key }).then((r) => r.data),
+  clearLlmKey: (provider: LlmProvider) => api.delete<LlmConfig>(`/admin/llm/keys/${provider}`).then((r) => r.data),
+  testLlm: () => api.post<{ results: LlmTestResult[] }>('/admin/llm/test').then((r) => r.data),
 
   analytics: () => api.get<AdminAnalytics>('/admin/analytics').then((r) => r.data),
 

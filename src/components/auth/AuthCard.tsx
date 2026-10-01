@@ -5,7 +5,16 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { useSession } from 'next-auth/react';
+import type { ReactNode } from 'react';
+import {
+  motion,
+  useMotionValue,
+  useReducedMotion,
+  useSpring,
+  useTransform,
+} from 'framer-motion';
 import { KeyRound, Loader2, LogIn, LogOut, Plane, UserPlus } from 'lucide-react';
+import { EASE_OUT } from '@/lib/motion';
 import {
   registerWithKeycloak,
   signInWithGoogle,
@@ -75,10 +84,12 @@ export function AuthCard({ mode }: { mode: AuthMode }) {
   if (autoRedirect || (status === 'loading' && !errorCode)) {
     return (
       <main className="relative flex min-h-screen items-center justify-center overflow-hidden">
-        <Image src="/images/hero-mountains.png" alt="" fill priority className="object-cover" />
-        <div className="absolute inset-0 bg-black/10" />
-        <p className="relative flex items-center gap-2 rounded-2xl bg-white/70 px-5 py-3 text-sm font-medium text-gray-800 shadow-lg backdrop-blur-md">
-          <Loader2 className="h-4 w-4 animate-spin text-brand-600" />
+<AuthBackdrop />
+        <p className="glass-strong relative flex items-center gap-3 rounded-2xl px-5 py-3 text-sm font-medium text-gray-800 shadow-lg">
+          <span className="relative flex h-8 w-8 items-center justify-center rounded-lg bg-brand-gradient">
+            <span aria-hidden className="absolute inset-0 animate-pulse-ring rounded-lg bg-accent-500/50" />
+            <Plane className="relative h-4 w-4 rotate-45 text-white" />
+          </span>
           {mode === 'signup' ? 'Taking you to sign-up…' : 'Taking you to sign-in…'}
         </p>
       </main>
@@ -87,10 +98,9 @@ export function AuthCard({ mode }: { mode: AuthMode }) {
 
   return (
     <main className="relative flex min-h-screen items-center justify-center overflow-hidden">
-      <Image src="/images/hero-mountains.png" alt="" fill priority className="object-cover" />
-      <div className="absolute inset-0 bg-black/10" />
+<AuthBackdrop />
 
-      <section className="relative w-full max-w-md rounded-3xl bg-white/70 p-8 shadow-2xl backdrop-blur-md">
+      <AuthPanel>
         <Link href="/" className="mb-4 block text-right text-sm text-gray-700 hover:underline">
           ← Back
         </Link>
@@ -108,26 +118,37 @@ export function AuthCard({ mode }: { mode: AuthMode }) {
         </p>
 
         <div className="mt-6 grid grid-cols-2 gap-1 rounded-xl bg-white/60 p-1">
-          <Link
-            href="/login"
-            className={`rounded-lg py-2 text-center text-sm font-semibold transition ${
-              mode === 'login' ? 'bg-white text-brand-700 shadow' : 'text-gray-500'
-            }`}
-          >
-            Sign In
-          </Link>
-          <Link
-            href="/signup"
-            className={`rounded-lg py-2 text-center text-sm font-semibold transition ${
-              mode === 'signup' ? 'bg-white text-brand-700 shadow' : 'text-gray-500'
-            }`}
-          >
-            Sign Up
-          </Link>
+          {(
+            [
+              { href: '/login', label: 'Sign In', tab: 'login' },
+              { href: '/signup', label: 'Sign Up', tab: 'signup' },
+            ] as const
+          ).map(({ href, label, tab }) => (
+            <Link
+              key={tab}
+              href={href}
+              className={`relative rounded-lg py-2 text-center text-sm font-semibold transition-colors ${
+                mode === tab ? 'text-brand-700' : 'text-gray-500 hover:text-brand-600'
+              }`}
+            >
+              {mode === tab && (
+                // Each tab is its own route, so the page remounts; the thumb
+                // starts over where the other tab sits and slides into place.
+                <motion.span
+                  aria-hidden
+                  initial={{ x: tab === 'login' ? '105%' : '-105%' }}
+                  animate={{ x: 0 }}
+                  transition={{ duration: 0.45, ease: EASE_OUT }}
+                  className="absolute inset-0 rounded-lg bg-white shadow"
+                />
+              )}
+              <span className="relative">{label}</span>
+            </Link>
+          ))}
         </div>
 
         {errorCode && (
-          <p className="mt-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
+          <p className="mt-5 animate-shake rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
             {ERROR_MESSAGES[errorCode] ?? ERROR_MESSAGES.Default}
           </p>
         )}
@@ -137,7 +158,7 @@ export function AuthCard({ mode }: { mode: AuthMode }) {
             type="button"
             disabled={pending !== null}
             onClick={() => go('keycloak')}
-            className="flex items-center justify-center gap-2 rounded-xl bg-brand-gradient px-5 py-3 text-sm font-bold text-white shadow-md transition hover:opacity-90 disabled:opacity-60"
+            className="btn-shimmer flex items-center justify-center gap-2 rounded-xl bg-brand-gradient px-5 py-3 text-sm font-bold text-white shadow-md transition duration-200 hover:-translate-y-0.5 hover:shadow-glow active:scale-[0.98] disabled:opacity-60"
           >
             {pending === 'keycloak' ? <Loader2 className="h-4 w-4 animate-spin" /> : <PrimaryIcon className="h-4 w-4" />}
             {mode === 'login' ? 'Sign In' : 'Sign Up'}
@@ -172,8 +193,66 @@ export function AuthCard({ mode }: { mode: AuthMode }) {
           {pending === 'google' ? <Loader2 className="h-4 w-4 animate-spin" /> : <GoogleIcon />}
           Google
         </button>
-      </section>
+      </AuthPanel>
     </main>
+  );
+}
+
+/** Blurred mountain photo behind the glass card. */
+function AuthBackdrop() {
+  return (
+    <>
+      <Image
+        src="/images/hero-mountains.png"
+        alt=""
+        fill
+        priority
+        className="scale-105 object-cover blur-sm"
+      />
+      <div className="absolute inset-0 bg-black/10" />
+    </>
+  );
+}
+
+/**
+ * The glass card: rises in with a scale, has a soft gradient glow behind its
+ * edge, and tilts a few degrees toward the cursor (off under reduced motion).
+ */
+function AuthPanel({ children }: { children: ReactNode }) {
+  const reduced = useReducedMotion();
+  const px = useMotionValue(0);
+  const py = useMotionValue(0);
+  const rotateX = useSpring(useTransform(py, [-0.5, 0.5], [5, -5]), { stiffness: 120, damping: 18 });
+  const rotateY = useSpring(useTransform(px, [-0.5, 0.5], [-5, 5]), { stiffness: 120, damping: 18 });
+
+  return (
+    <div
+      className="relative w-full max-w-md [perspective:1000px]"
+      onPointerMove={(e) => {
+        if (reduced) return;
+        const r = e.currentTarget.getBoundingClientRect();
+        px.set((e.clientX - r.left) / r.width - 0.5);
+        py.set((e.clientY - r.top) / r.height - 0.5);
+      }}
+      onPointerLeave={() => {
+        px.set(0);
+        py.set(0);
+      }}
+    >
+      <div
+        aria-hidden
+        className="absolute -inset-px animate-gradient-shift rounded-3xl bg-brand-gradient-wide bg-[length:200%_100%] opacity-50 blur-md"
+      />
+      <motion.section
+        initial={reduced ? false : { opacity: 0, y: 40, scale: 0.94 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.6, ease: EASE_OUT }}
+        style={reduced ? undefined : { rotateX, rotateY }}
+        className="glass-strong relative rounded-3xl p-8 shadow-2xl"
+      >
+        {children}
+      </motion.section>
+    </div>
   );
 }
 
@@ -194,10 +273,9 @@ function AlreadySignedIn({
 
   return (
     <main className="relative flex min-h-screen items-center justify-center overflow-hidden">
-      <Image src="/images/hero-mountains.png" alt="" fill priority className="object-cover" />
-      <div className="absolute inset-0 bg-black/10" />
+<AuthBackdrop />
 
-      <section className="relative w-full max-w-md rounded-3xl bg-white/70 p-8 shadow-2xl backdrop-blur-md">
+      <AuthPanel>
         <div className="mb-6 flex items-center gap-3">
           <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-gradient">
             <Plane className="h-6 w-6 rotate-45 text-white" />
@@ -240,7 +318,7 @@ function AlreadySignedIn({
             {signingOut ? 'Signing out…' : 'Sign out and use another account'}
           </button>
         </div>
-      </section>
+      </AuthPanel>
     </main>
   );
 }

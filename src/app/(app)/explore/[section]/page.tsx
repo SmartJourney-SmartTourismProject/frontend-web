@@ -153,8 +153,8 @@ export default function ExploreSectionPage() {
         ) : (
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 md:grid-cols-5">
             {section === 'events'
-              ? events.map((event) => <EventCard key={event.id} event={event} />)
-              : listings.map((listing) => <ListingCard key={listing.id} listing={listing} />)}
+              ? events.map((event, i) => <EventCard key={event.id} event={event} index={i} />)
+              : listings.map((listing, i) => <ListingCard key={listing.id} listing={listing} index={i} />)}
           </div>
         )}
 

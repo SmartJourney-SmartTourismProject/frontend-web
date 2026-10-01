@@ -9,8 +9,9 @@ import {
 } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { signOutEverywhere } from '@/lib/auth-client';
-import { initials } from '@/lib/initials';
-import { chatApi } from '@/lib/api';
+import { Avatar } from '@/components/ui/Avatar';
+import { useProfileStore } from '@/lib/profile-store';
+import { chatApi, usersApi } from '@/lib/api';
 import { groupByRecency } from '@/lib/group-by-recency';
 import { useTripStore } from '@/lib/trip-store';
 import { SettingsModal } from '@/components/settings/SettingsModal';
@@ -46,6 +47,22 @@ export function AppSidebar() {
   const currentSessionId = useTripStore((s) => s.sessionId);
   const setSessionId = useTripStore((s) => s.setSessionId);
   const resetTrip = useTripStore((s) => s.reset);
+  const avatarUrl = useProfileStore((s) => s.avatarUrl);
+  const setAvatarUrl = useProfileStore((s) => s.setAvatarUrl);
+  const setLocationEnabled = useProfileStore((s) => s.setLocationEnabled);
+
+  // The sidebar is on every app page, so it loads the user record once for
+  // everything that reads the profile store (footer avatar, chat location).
+  useEffect(() => {
+    usersApi
+      .me()
+      .then((me) => {
+        setAvatarUrl(me.avatar_url);
+        setLocationEnabled(me.location_enabled);
+      })
+      // Unknown: behave as the default (on) rather than never asking.
+      .catch(() => setLocationEnabled(true));
+  }, [setAvatarUrl, setLocationEnabled]);
 
   // Read after mount: localStorage does not exist during server rendering,
   // and seeding initial state from it would desync the markup.
@@ -225,11 +242,8 @@ export function AppSidebar() {
           collapsed ? 'flex-col items-center gap-2 px-2' : 'items-center gap-2.5 px-4'
         }`}
       >
-        <span
-          title={collapsed ? (user?.name ?? user?.email ?? 'Guest') : undefined}
-          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-gradient text-xs font-semibold text-white"
-        >
-          {initials(user?.name ?? user?.email)}
+        <span title={collapsed ? (user?.name ?? user?.email ?? 'Guest') : undefined}>
+          <Avatar src={avatarUrl} name={user?.name ?? user?.email} />
         </span>
         {!collapsed && (
           <div className="min-w-0 flex-1">

@@ -1,9 +1,11 @@
 'use client';
 
+import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { Calendar, MapPin, Trash2 } from 'lucide-react';
 import { tripsApi } from '@/lib/api';
+import { tripImage } from '@/lib/trip-images';
 import type { Trip, TripStatus } from '@/lib/types';
 
 const TABS: { label: string; status: TripStatus }[] = [
@@ -87,11 +89,28 @@ function TripCard({ trip, onDelete }: { trip: Trip; onDelete: () => void }) {
       ? `${new Date(trip.start_date).toLocaleDateString()} – ${new Date(trip.end_date).toLocaleDateString()}`
       : 'Dates not set';
 
+  const image = tripImage(trip);
+
   return (
     <div className="overflow-hidden rounded-2xl border border-gray-200 shadow-sm transition hover:shadow-md">
       <Link href={`/saved-itineraries/${trip.id}`}>
-        <div className="relative flex h-28 items-center justify-center bg-brand-gradient">
-          <MapPin className="h-8 w-8 text-white/80" />
+        <div className="relative flex h-32 items-center justify-center bg-brand-gradient">
+          {image ? (
+            <>
+              <Image
+                src={image}
+                alt=""
+                fill
+                sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+                className="object-cover"
+                // Remote listing photos (Wikimedia etc.): load in the browser, like Explore.
+                unoptimized={image.startsWith('http')}
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
+            </>
+          ) : (
+            <MapPin className="h-8 w-8 text-white/80" />
+          )}
           <span
             className={`absolute left-3 top-3 rounded-full px-2 py-0.5 text-[11px] font-semibold ${STATUS_BADGE[trip.status]}`}
           >

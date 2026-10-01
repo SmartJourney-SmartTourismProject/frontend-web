@@ -1,7 +1,9 @@
 'use client';
 
 import { useState, type FormEvent } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { Plus, Trash2 } from 'lucide-react';
+import { EmptyIllustration } from './EmptyIllustration';
 import type { Expense } from '@/lib/types';
 
 const CATEGORIES = ['Stays', 'Transport', 'Food & drink', 'Activities', 'Other'];
@@ -54,13 +56,24 @@ export function ExpensesPanel({
         </div>
         <button
           onClick={() => setShowForm((v) => !v)}
-          className="flex items-center gap-1 rounded-full border border-brand-300 px-3 py-1.5 text-xs font-semibold text-brand-700 hover:bg-brand-50"
+          className="flex items-center gap-1 rounded-full border border-brand-300 px-3 py-1.5 text-xs font-semibold text-brand-700 transition hover:scale-105 hover:bg-brand-50 active:scale-95"
         >
-          <Plus className="h-3.5 w-3.5" /> Add expense
+          <Plus
+            className={`h-3.5 w-3.5 transition-transform duration-300 ${showForm ? 'rotate-45' : ''}`}
+          />{' '}
+          Add expense
         </button>
       </div>
 
-      {showForm && (
+      <AnimatePresence initial={false}>
+        {showForm && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+            className="overflow-hidden"
+          >
         <form onSubmit={handleSubmit} className="mt-4 grid grid-cols-2 gap-3 rounded-xl bg-gray-50 p-4 sm:grid-cols-5">
           <select
             value={category}
@@ -103,11 +116,16 @@ export function ExpensesPanel({
             {submitting ? 'Saving…' : 'Save expense'}
           </button>
         </form>
-      )}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <div className="mt-4 overflow-x-auto">
         {expenses.length === 0 ? (
-          <p className="text-sm text-gray-400">No expenses logged yet.</p>
+          <div className="flex flex-col items-center py-4 text-center">
+            <EmptyIllustration className="h-24 w-28" />
+            <p className="mt-2 text-sm text-gray-400">No expenses logged yet.</p>
+          </div>
         ) : (
           <table className="w-full text-left text-sm">
             <thead>
@@ -121,7 +139,13 @@ export function ExpensesPanel({
             </thead>
             <tbody>
               {expenses.map((expense) => (
-                <tr key={expense.id} className="border-b border-gray-50">
+                <motion.tr
+                  key={expense.id}
+                  initial={{ opacity: 0, x: -8 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className="border-b border-gray-50 transition-colors hover:bg-brand-50/40"
+                >
                   <td className="py-2 pr-4 text-gray-500">
                     {new Date(expense.occurred_at).toLocaleDateString()}
                   </td>
@@ -143,7 +167,7 @@ export function ExpensesPanel({
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>
                   </td>
-                </tr>
+                </motion.tr>
               ))}
             </tbody>
           </table>

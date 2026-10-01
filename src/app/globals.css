@@ -21,3 +21,86 @@ html {
     scroll-behavior: smooth;
   }
 }
+
+@layer components {
+  /* Frosted-glass surface: heavier blur plus a 1px light edge so cards keep
+     their definition against busy photo backgrounds. */
+  .glass {
+    @apply border border-white/25 bg-white/10 backdrop-blur-xl;
+  }
+  .glass-strong {
+    @apply border border-white/40 bg-white/70 backdrop-blur-xl;
+  }
+
+  /* Shimmering loading placeholder (see components/ui/Skeleton). */
+  .skeleton {
+    background: linear-gradient(90deg, #ececf3 25%, #f7f7fb 50%, #ececf3 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.6s linear infinite;
+  }
+
+  /* Gradient text that sweeps a highlight across (hero "handcrafted"). */
+  .text-shimmer {
+    background-image: linear-gradient(100deg, #c9b3e2 30%, #ffffff 50%, #c9b3e2 70%);
+    background-size: 200% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: shimmer 4s linear infinite;
+  }
+
+  /* Light sweep that periodically glides across a primary button. */
+  .btn-shimmer {
+    position: relative;
+    overflow: hidden;
+  }
+  .btn-shimmer::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(105deg, transparent 35%, rgba(255, 255, 255, 0.35) 50%, transparent 65%);
+    transform: translateX(-120%);
+    animation: btn-sheen 3.5s ease-in-out infinite;
+    pointer-events: none;
+  }
+
+  /* Numbered map pin (Leaflet divIcon). */
+  .sj-pin {
+    @apply relative flex h-7 w-7 items-center justify-center rounded-full border-2 border-white bg-brand-gradient text-xs font-bold text-white shadow-lg;
+  }
+  /* Several stops at one place (the hotel you return to, a repeated
+     restaurant): one pill listing every stop number, e.g. "3·7·8". */
+  .sj-pin-multi {
+    @apply w-auto px-2;
+  }
+  .sj-pin-start {
+    @apply bg-none bg-emerald-600;
+  }
+  .sj-pin-ring {
+    @apply absolute inset-0 rounded-full bg-accent-500/60;
+  }
+}
+
+/* One global switch: users who ask for less motion get no looping or
+   entrance animation anywhere (framer-motion components additionally check
+   useReducedMotion so their JS-driven animations stop too). */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@keyframes btn-sheen {
+  0%,
+  55% {
+    transform: translateX(-120%);
+  }
+  100% {
+    transform: translateX(120%);
+  }
+}

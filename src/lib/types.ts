@@ -146,6 +146,8 @@ export interface Me {
   role: 'traveler' | 'admin';
   email_verified: boolean;
   location_enabled: boolean;
+  /** Small inline image (data URL), or null to show initials. */
+  avatar_url: string | null;
   created_at: string;
   preferences: UserPreferences;
 }
@@ -196,6 +198,30 @@ export interface AdminEntryFee {
   reviewed_at: string | null;
   reviewed_by: string | null;
   travel_listing: { id: string; name: string; district: { id: string; name: string } } | null;
+}
+
+// ---- Admin > AI models ---------------------------------------------------
+
+export type LlmProvider = 'gemini' | 'groq' | 'openai' | 'anthropic';
+/** Where a provider's API key comes from: saved in the admin panel, the server .env, or nowhere. */
+export type LlmKeySource = 'db' | 'env' | 'none';
+
+export interface LlmConfig {
+  /** "<provider>:<model>", in order: first = main model, the rest = backups. */
+  chain: string[];
+  chain_source: 'db' | 'env';
+  ai_backend_reachable: boolean;
+  encryption_configured: boolean;
+  providers: { provider: LlmProvider; source: LlmKeySource; last4: string | null; updated_at: string | null }[];
+}
+
+export type LlmTestStatus = 'ok' | 'quota' | 'auth' | 'not_found' | 'no_key' | 'error';
+
+export interface LlmTestResult {
+  spec: string;
+  status: LlmTestStatus;
+  message: string;
+  latency_ms: number | null;
 }
 
 export interface AdminUser {
@@ -265,6 +291,7 @@ export interface EntryFeeQuery {
 export interface UpdateMePayload {
   phone?: string | null;
   location_enabled?: boolean;
+  avatar_url?: string | null;
 }
 
 export interface ListingImage {
@@ -360,6 +387,8 @@ export interface Trip {
   created_at: string;
   updated_at: string;
   district: District | null;
+  /** From the trip list: a photo of one of its stops, when any has one. */
+  cover_photo_url?: string | null;
 }
 
 export interface TripItineraryItem {

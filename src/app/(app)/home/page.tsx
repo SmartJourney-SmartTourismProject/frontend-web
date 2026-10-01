@@ -43,7 +43,7 @@ export default function HomePage() {
 
   return (
     <div className="relative h-full overflow-hidden">
-      <SplitPane rightOpen={mapOpen} left={<ChatPanel />} right={<RouteMapPanel />} />
+      <SplitPane rightOpen={mapOpen} left={<ChatPanel centered={!mapOpen} />} right={<RouteMapPanel />} />
 
       <button
         onClick={toggleMap}

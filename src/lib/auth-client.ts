@@ -58,5 +58,12 @@ export async function signOutEverywhere() {
   const res = await fetch('/api/auth/federated-logout');
   const { url } = (await res.json()) as { url: string };
   await signOut({ redirect: false });
+  // Forget which chat was open, so the next sign-in starts a new chat (a
+  // refresh while signed in still restores it).
+  try {
+    localStorage.removeItem('smartjourney-trip-store');
+  } catch {
+    // storage blocked - nothing to clear
+  }
   window.location.href = url;
 }

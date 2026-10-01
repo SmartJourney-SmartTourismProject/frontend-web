@@ -1,6 +1,7 @@
+'use client';
+
 import { ClipboardList, MapPin, Wand2 } from 'lucide-react';
-import { Reveal, StaggerGroup, StaggerItem } from './Reveal';
-import { FloatingOrb } from './FloatingOrb';
+import { Reveal, StaggerGroup, StaggerItem } from '@/components/motion/Reveal';
 
 const STEPS = [
   {
@@ -27,27 +28,23 @@ export function HowItWorks() {
   return (
     <section
       id="how-it-works"
-      className="relative overflow-hidden bg-gradient-to-b from-brand-900 to-brand-800 px-6 py-24 sm:px-10 lg:px-20"
+      className="relative overflow-hidden bg-white px-6 py-24 sm:px-10 lg:px-20"
     >
-      <FloatingOrb
-        className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-brand-gradient opacity-20 blur-3xl"
-        duration={12}
-      />
       <div className="relative mx-auto max-w-6xl">
         <Reveal className="max-w-2xl">
-          <p className="text-sm font-semibold uppercase tracking-wide text-accent-500">
+          <p className="text-sm font-semibold uppercase tracking-wide text-accent-600">
             How it works
           </p>
-          <h2 className="mt-3 font-serif text-3xl font-semibold text-white sm:text-4xl">
+          <h2 className="mt-3 font-serif text-3xl font-semibold text-brand-800 sm:text-4xl">
             From idea to itinerary in three steps.
           </h2>
         </Reveal>
 
         <StaggerGroup className="mt-16 grid gap-8 md:grid-cols-3">
-          {STEPS.map((item, index) => (
+          {STEPS.map((item) => (
             <StaggerItem key={item.step} className="relative">
-              <div className="h-full rounded-2xl border border-brand-100 bg-white p-8 shadow-lg shadow-black/20 transition duration-300 hover:shadow-xl">
-                <span className="font-serif text-5xl font-semibold text-brand-100">
+              <div className="h-full rounded-2xl border border-brand-100 bg-brand-50 p-8 shadow-lg shadow-brand-800/10 transition duration-300 hover:-translate-y-1 hover:shadow-xl">
+                <span className="font-serif text-5xl font-semibold text-brand-300">
                   {item.step}
                 </span>
                 <span className="mt-4 flex h-12 w-12 items-center justify-center rounded-xl bg-brand-600/10 text-brand-600">
@@ -58,9 +55,6 @@ export function HowItWorks() {
                   {item.description}
                 </p>
               </div>
-              {index < STEPS.length - 1 && (
-                <div className="absolute right-[-1rem] top-1/2 hidden h-px w-8 -translate-y-1/2 bg-white/20 md:block" />
-              )}
             </StaggerItem>
           ))}
         </StaggerGroup>

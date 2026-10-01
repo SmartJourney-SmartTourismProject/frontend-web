@@ -2,10 +2,11 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, BarChart3, CalendarDays, LayoutGrid, MapPinned, Ticket, Users } from 'lucide-react';
+import { ArrowLeft, BarChart3, Bot, CalendarDays, LayoutGrid, MapPinned, Ticket, Users } from 'lucide-react';
 import { adminApi } from '@/lib/api';
 import { AnalyticsPanel } from '@/components/admin/AnalyticsPanel';
 import { EntryFeesPanel } from '@/components/admin/EntryFeesPanel';
+import { LlmPanel } from '@/components/admin/LlmPanel';
 import { ModerationPanel } from '@/components/admin/ModerationPanel';
 import { UsersPanel } from '@/components/admin/UsersPanel';
 import type { AdminStats } from '@/lib/types';
@@ -13,7 +14,7 @@ import type { AdminStats } from '@/lib/types';
 // Reaching this page at all requires the Keycloak realm role `admin`:
 // middleware.ts checks it before the page renders, and every /admin API route
 // re-checks it server-side, so the UI is a convenience, not the control.
-type Tab = 'listings' | 'events' | 'entry-fees' | 'users' | 'analytics';
+type Tab = 'listings' | 'events' | 'entry-fees' | 'users' | 'analytics' | 'ai-models';
 
 const TABS: { id: Tab; label: string; icon: typeof LayoutGrid }[] = [
   { id: 'listings', label: 'Listings', icon: MapPinned },
@@ -21,6 +22,7 @@ const TABS: { id: Tab; label: string; icon: typeof LayoutGrid }[] = [
   { id: 'entry-fees', label: 'Entry fees', icon: Ticket },
   { id: 'users', label: 'Users', icon: Users },
   { id: 'analytics', label: 'Analytics', icon: BarChart3 },
+  { id: 'ai-models', label: 'AI models', icon: Bot },
 ];
 
 export default function AdminPage() {
@@ -104,6 +106,7 @@ export default function AdminPage() {
 
         <section className="py-6">
           {tab === 'analytics' && <AnalyticsPanel />}
+          {tab === 'ai-models' && <LlmPanel />}
           {tab === 'users' && <UsersPanel onChanged={loadStats} />}
           {tab === 'entry-fees' && <EntryFeesPanel onChanged={loadStats} />}
           {(tab === 'listings' || tab === 'events') && (
