@@ -1,5 +1,6 @@
 'use client';
 
+import { Logo } from '@/components/ui/Logo';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -13,7 +14,7 @@ import {
   useSpring,
   useTransform,
 } from 'framer-motion';
-import { KeyRound, Loader2, LogIn, LogOut, Plane, UserPlus } from 'lucide-react';
+import { KeyRound, Loader2, LogIn, LogOut, UserPlus } from 'lucide-react';
 import { EASE_OUT } from '@/lib/motion';
 import {
   registerWithKeycloak,
@@ -86,9 +87,9 @@ export function AuthCard({ mode }: { mode: AuthMode }) {
       <main className="relative flex min-h-screen items-center justify-center overflow-hidden">
 <AuthBackdrop />
         <p className="glass-strong relative flex items-center gap-3 rounded-2xl px-5 py-3 text-sm font-medium text-gray-800 shadow-lg">
-          <span className="relative flex h-8 w-8 items-center justify-center rounded-lg bg-brand-gradient">
-            <span aria-hidden className="absolute inset-0 animate-pulse-ring rounded-lg bg-accent-500/50" />
-            <Plane className="relative h-4 w-4 rotate-45 text-white" />
+          <span className="relative flex h-9 w-9 items-center justify-center">
+            <span aria-hidden className="absolute inset-0 animate-pulse-ring rounded-full bg-accent-500/40" />
+            <Logo className="relative h-9 w-9" />
           </span>
           {mode === 'signup' ? 'Taking you to sign-up…' : 'Taking you to sign-in…'}
         </p>
@@ -106,9 +107,7 @@ export function AuthCard({ mode }: { mode: AuthMode }) {
         </Link>
 
         <div className="mb-6 flex items-center gap-3">
-          <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-gradient">
-            <Plane className="h-6 w-6 rotate-45 text-white" />
-          </span>
+          <Logo className="h-11 w-11" />
           <span className="font-serif text-xl font-semibold text-brand-600">SmartJourney</span>
         </div>
 
@@ -277,9 +276,7 @@ function AlreadySignedIn({
 
       <AuthPanel>
         <div className="mb-6 flex items-center gap-3">
-          <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-gradient">
-            <Plane className="h-6 w-6 rotate-45 text-white" />
-          </span>
+          <Logo className="h-11 w-11" />
           <span className="font-serif text-xl font-semibold text-brand-600">SmartJourney</span>
         </div>
 

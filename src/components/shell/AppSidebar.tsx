@@ -1,10 +1,11 @@
 'use client';
 
+import { Logo } from '@/components/ui/Logo';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import {
-  Compass, Wallet, Calendar, Plus, Search, Settings, Plane, LogOut, Trash2, ShieldCheck,
+  Compass, Wallet, Calendar, Plus, Search, Settings, LogOut, Trash2, ShieldCheck,
   PanelLeftClose, PanelLeftOpen,
 } from 'lucide-react';
 import { useSession } from 'next-auth/react';
@@ -126,7 +127,7 @@ export function AppSidebar() {
       <div className={`flex items-center pt-4 ${collapsed ? 'flex-col gap-3 px-2' : 'gap-2 px-4'}`}>
         {!collapsed && (
           <>
-            <Plane className="h-5 w-5 rotate-45 text-brand-600" />
+            <Logo className="h-8 w-8" />
             <span className="flex-1 font-serif text-lg font-semibold text-gray-900">SmartJourney</span>
           </>
         )}

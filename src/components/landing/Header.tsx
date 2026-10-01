@@ -1,7 +1,7 @@
 'use client';
 
+import { Logo } from '@/components/ui/Logo';
 import { useEffect, useState } from 'react';
-import { Plane } from 'lucide-react';
 import clsx from 'clsx';
 import { AuthLaunchButton } from '@/components/auth/AuthLaunchButton';
 
@@ -32,12 +32,7 @@ export function Header() {
       )}
     >
       <div className="flex items-center gap-2">
-        <Plane
-          className={clsx(
-            'rotate-45 text-brand-500 transition-all duration-300',
-            scrolled ? 'h-6 w-6' : 'h-7 w-7',
-          )}
-        />
+        <Logo className={clsx('transition-all duration-300', scrolled ? 'h-8 w-8' : 'h-10 w-10')} />
         <span
           className={clsx(
             'font-serif font-semibold text-brand-700 transition-all duration-300',

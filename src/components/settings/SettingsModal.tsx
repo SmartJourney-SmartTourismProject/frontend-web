@@ -1,8 +1,9 @@
 'use client';
 
+import { Logo } from '@/components/ui/Logo';
 import { useState } from 'react';
 import { AnimatePresence, LayoutGroup, motion, useReducedMotion } from 'framer-motion';
-import { Bell, CreditCard, Plane, User, X } from 'lucide-react';
+import { Bell, CreditCard, User, X } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { EASE_OUT, SPRING } from '@/lib/motion';
 import { AccountTab } from './tabs/AccountTab';
@@ -69,7 +70,7 @@ export function SettingsModal({
           >
             <aside className="flex w-56 shrink-0 flex-col bg-brand-gradient px-4 py-5 text-white">
               <div className="mb-6 flex items-center gap-2 px-1">
-                <Plane className="h-5 w-5 rotate-45" />
+                <Logo className="h-7 w-7" />
                 <span className="font-serif text-base font-semibold">SmartJourney</span>
               </div>
               <p className="mb-2 px-1 text-[10px] font-semibold tracking-wider text-white/60">SETTINGS</p>

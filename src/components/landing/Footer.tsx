@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Plane } from 'lucide-react';
+import { Logo } from '@/components/ui/Logo';
 import { DESTINATIONS } from '@/lib/landing-destinations';
 
 const FOOTER_LINKS = [
@@ -26,7 +26,7 @@ export function Footer() {
       <div className="mx-auto flex max-w-6xl flex-col gap-10 sm:flex-row sm:justify-between">
         <div className="max-w-xs">
           <div className="flex items-center gap-2">
-            <Plane className="h-6 w-6 rotate-45 text-sky-300" />
+            <Logo className="h-9 w-9" />
             <span className="font-serif text-xl font-semibold">SmartJourney</span>
           </div>
           <p className="mt-3 text-sm text-white/60">
