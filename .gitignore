@@ -40,3 +40,6 @@ next-env.d.ts
 
 .vercel
 .env*
+
+# playwright auth state (a real signed-in session - never commit)
+/e2e/.auth/
