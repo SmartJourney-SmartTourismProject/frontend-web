@@ -138,7 +138,7 @@ export function UsersPanel({ onChanged }: { onChanged: () => void }) {
                         deactivated
                       </span>
                     )}
-                    {isSelf && <span className="text-[11px] text-gray-400">(you)</span>}
+                    {isSelf && <span className="text-[11px] text-gray-500">(you)</span>}
                     {!user.managed && (
                       <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] text-gray-500">
                         no sign-in
@@ -221,7 +221,7 @@ export function UsersPanel({ onChanged }: { onChanged: () => void }) {
               </button>
             </header>
 
-            {activity === null && <p className="py-8 text-center text-sm text-gray-400">Loading…</p>}
+            {activity === null && <p className="py-8 text-center text-sm text-gray-500">Loading…</p>}
             {activity?.length === 0 && (
               <p className="py-8 text-center text-sm text-gray-500">
                 Nothing recorded for this account yet. Entries appear when the user (or an admin acting on them)
@@ -234,7 +234,7 @@ export function UsersPanel({ onChanged }: { onChanged: () => void }) {
                   <li key={a.id} className="py-2.5">
                     <div className="flex items-baseline justify-between gap-3">
                       <code className="text-xs font-semibold text-gray-900">{a.action}</code>
-                      <time className="shrink-0 text-xs text-gray-400" dateTime={a.created_at}>
+                      <time className="shrink-0 text-xs text-gray-500" dateTime={a.created_at}>
                         {new Date(a.created_at).toLocaleString()}
                       </time>
                     </div>

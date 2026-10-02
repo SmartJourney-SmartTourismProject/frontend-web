@@ -39,7 +39,7 @@ export function SpendByCategoryPanel({
       {breakdown.length === 0 ? (
         <div className="mt-4 flex flex-col items-center py-4 text-center">
           <EmptyIllustration className="h-24 w-28" />
-          <p className="mt-2 text-sm text-gray-400">No expenses logged yet.</p>
+          <p className="mt-2 text-sm text-gray-500">No expenses logged yet.</p>
         </div>
       ) : (
         <>

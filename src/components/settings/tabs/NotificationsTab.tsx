@@ -43,7 +43,7 @@ export function NotificationsTab() {
       <PrefGroup title="Delivery" prefs={DELIVERY} values={prefs} onChange={setPref} />
 
       <section>
-        <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Sound</p>
+        <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Sound</p>
         <div className="mt-3 flex items-center justify-between border-t border-gray-100 py-3">
           <div className="flex items-center gap-3">
             <IconBadge icon={Volume2} />
@@ -102,7 +102,7 @@ function PrefGroup({
 }) {
   return (
     <section>
-      <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">{title}</p>
+      <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">{title}</p>
       {prefs.map((pref) => (
         <div key={pref.key} className="flex items-center justify-between border-t border-gray-100 py-3">
           <div className="flex items-center gap-3">

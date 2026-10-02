@@ -27,7 +27,7 @@ export function AnalyticsPanel() {
       </p>
     );
   }
-  if (!data) return <p className="py-10 text-center text-sm text-gray-400">Loading analytics…</p>;
+  if (!data) return <p className="py-10 text-center text-sm text-gray-500">Loading analytics…</p>;
 
   const { trends, breakdowns } = data;
   const trendSeries = [

@@ -147,7 +147,7 @@ export default function ExploreSectionPage() {
         {error ? (
           <p className="text-sm text-red-600">Couldn&apos;t load this list. Check that the API is running.</p>
         ) : !loading && total === 0 ? (
-          <p className="text-sm text-gray-400">
+          <p className="text-sm text-gray-500">
             {section === 'events' ? 'No upcoming events match.' : 'No places match your search.'}
           </p>
         ) : (

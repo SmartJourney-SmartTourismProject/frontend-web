@@ -222,7 +222,7 @@ export function ModerationPanel({ kind, onChanged }: { kind: Kind; onChanged: ()
             {loading ? 'Loading…' : `${total} ${kind === 'listings' ? 'listing' : 'event'}${total === 1 ? '' : 's'}`}
           </p>
           <div className="flex items-center gap-3">
-            {rows.length < total && <p className="text-xs text-gray-400">Showing the first {rows.length}</p>}
+            {rows.length < total && <p className="text-xs text-gray-500">Showing the first {rows.length}</p>}
             {pendingShown > 0 && (
               <button
                 type="button"

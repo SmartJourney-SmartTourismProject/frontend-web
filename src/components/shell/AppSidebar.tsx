@@ -197,11 +197,11 @@ export function AppSidebar() {
           it, so the rail drops it and keeps the space for the panels. */}
       <div className={`mt-4 flex-1 overflow-y-auto pb-4 px-4 ${collapsed ? 'hidden' : ''}`}>
         {groups.length === 0 && (
-          <p className="mt-6 text-center text-xs text-gray-400">No trips yet</p>
+          <p className="mt-6 text-center text-xs text-gray-500">No trips yet</p>
         )}
         {groups.map((group) => (
           <div key={group.heading} className="mb-4">
-            <p className="mb-1 mt-3 text-[11px] font-semibold tracking-wide text-gray-400">
+            <p className="mb-1 mt-3 text-[11px] font-semibold tracking-wide text-gray-500">
               {group.heading}
             </p>
             <ul className="flex flex-col gap-0.5">

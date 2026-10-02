@@ -166,7 +166,7 @@ export default function ExplorePage() {
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-gray-400">No listings match your search.</p>
+              <p className="text-sm text-gray-500">No listings match your search.</p>
             )}
           </section>
         ) : loading ? (

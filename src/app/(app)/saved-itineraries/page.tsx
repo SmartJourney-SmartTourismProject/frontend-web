@@ -65,9 +65,9 @@ export default function SavedItinerariesPage() {
 
         <div className="mt-6">
           {loading ? (
-            <p className="text-sm text-gray-400">Loading…</p>
+            <p className="text-sm text-gray-500">Loading…</p>
           ) : trips.length === 0 ? (
-            <p className="text-sm text-gray-400">
+            <p className="text-sm text-gray-500">
               No trips here yet. Save a plan from the Home chat to see it here.
             </p>
           ) : (

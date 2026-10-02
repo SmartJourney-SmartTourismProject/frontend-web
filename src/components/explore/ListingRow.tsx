@@ -61,7 +61,7 @@ export function ListingRow({
       </div>
 
       {!hasItems ? (
-        <p className="text-sm text-gray-400">{emptyMessage ?? 'Nothing to show yet.'}</p>
+        <p className="text-sm text-gray-500">{emptyMessage ?? 'Nothing to show yet.'}</p>
       ) : isMarquee ? (
         <div className={`overflow-hidden py-1 ${EDGE_FADE}`}>
           {/* Two identical halves; the belt slides exactly one half, then loops. */}

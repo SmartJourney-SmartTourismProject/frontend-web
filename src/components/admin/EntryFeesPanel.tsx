@@ -166,7 +166,7 @@ export function EntryFeesPanel({ onChanged }: { onChanged: () => void }) {
           <p className="text-sm font-semibold text-gray-900">
             {loading ? 'Loading…' : `${total} entry fee${total === 1 ? '' : 's'}`}
           </p>
-          {rows.length < total && <p className="text-xs text-gray-400">Showing the first {rows.length}</p>}
+          {rows.length < total && <p className="text-xs text-gray-500">Showing the first {rows.length}</p>}
         </div>
 
         {!loading && rows.length === 0 && (
@@ -205,7 +205,7 @@ export function EntryFeesPanel({ onChanged }: { onChanged: () => void }) {
                     <span className="flex flex-wrap items-center gap-1 text-gray-600">
                       <Link2 className="h-3 w-3 text-emerald-600" />
                       Linked to <span className="font-medium text-gray-900">{row.travel_listing.name}</span>
-                      <span className="text-gray-400">· {row.travel_listing.district.name}</span>
+                      <span className="text-gray-500">· {row.travel_listing.district.name}</span>
                     </span>
                   ) : (
                     <span className="flex items-center gap-1 text-amber-700">
@@ -330,9 +330,9 @@ function ListingPicker({
       </div>
 
       <ul className="mt-1.5 max-h-48 divide-y divide-gray-100 overflow-y-auto">
-        {searching && <li className="px-2 py-2 text-xs text-gray-400">Searching…</li>}
+        {searching && <li className="px-2 py-2 text-xs text-gray-500">Searching…</li>}
         {!searching && query.trim() && results.length === 0 && (
-          <li className="px-2 py-2 text-xs text-gray-400">No matching listings.</li>
+          <li className="px-2 py-2 text-xs text-gray-500">No matching listings.</li>
         )}
         {results.map((listing) => (
           <li key={listing.id}>
@@ -343,7 +343,7 @@ function ListingPicker({
               className="flex w-full items-center justify-between gap-2 rounded-md px-2 py-1.5 text-left text-xs hover:bg-white disabled:opacity-60"
             >
               <span className="truncate font-medium text-gray-900">{listing.name}</span>
-              <span className="shrink-0 text-gray-400">{listing.district?.name}</span>
+              <span className="shrink-0 text-gray-500">{listing.district?.name}</span>
             </button>
           </li>
         ))}

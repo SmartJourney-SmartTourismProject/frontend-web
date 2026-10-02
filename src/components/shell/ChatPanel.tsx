@@ -305,7 +305,7 @@ export function ChatPanel({ centered = false }: { centered?: boolean }) {
       <div ref={logRef} className="flex-1 overflow-y-auto px-6 py-6">
         <div className={column}>
         {entries.length === 0 && (
-          <p className="text-sm text-gray-400">
+          <p className="text-sm text-gray-500">
             Type a trip request below (e.g. &ldquo;Plan a 3-day trip to Kandy, budget 60000 LKR,
             culture and history&rdquo;). Send a follow-up message afterwards to modify the same plan.
           </p>
@@ -575,7 +575,7 @@ function SourcesList({ sources }: { sources: TripSource[] }) {
                 {source.section ? ` — ${source.section}` : ''}
               </span>
             )}
-            <span className="text-gray-400"> ({source.license})</span>
+            <span className="text-gray-500"> ({source.license})</span>
           </li>
         ))}
       </ul>
@@ -718,7 +718,7 @@ function ItinerarySummary({
               >
                 <span className="text-xs font-semibold text-brand-700">
                   DAY {day.day}
-                  {day.date && <span className="ml-1.5 font-normal text-gray-400">{day.date}</span>}
+                  {day.date && <span className="ml-1.5 font-normal text-gray-500">{day.date}</span>}
                 </span>
                 <span className="flex items-center gap-1.5">
                   {day.day_cost != null && (
@@ -753,7 +753,7 @@ function ItinerarySummary({
                           variants={reduced ? undefined : ROW_ITEM}
                           className="flex items-baseline gap-2 text-xs"
                         >
-                          <span className="w-12 shrink-0 font-mono text-gray-400">{item.time ?? '—'}</span>
+                          <span className="w-12 shrink-0 font-mono text-gray-500">{item.time ?? '—'}</span>
                           <span className="w-24 shrink-0 text-gray-500">
                             {item.est_cost
                               ? `${item.est_cost.toLocaleString()} ${item.currency ?? plan.currency}`

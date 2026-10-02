@@ -124,12 +124,12 @@ export function ExpensesPanel({
         {expenses.length === 0 ? (
           <div className="flex flex-col items-center py-4 text-center">
             <EmptyIllustration className="h-24 w-28" />
-            <p className="mt-2 text-sm text-gray-400">No expenses logged yet.</p>
+            <p className="mt-2 text-sm text-gray-500">No expenses logged yet.</p>
           </div>
         ) : (
           <table className="w-full text-left text-sm">
             <thead>
-              <tr className="border-b border-gray-100 text-xs uppercase text-gray-400">
+              <tr className="border-b border-gray-100 text-xs uppercase text-gray-500">
                 <th className="pb-2 pr-4 font-semibold">Date</th>
                 <th className="pb-2 pr-4 font-semibold">Description</th>
                 <th className="pb-2 pr-4 font-semibold">Category</th>

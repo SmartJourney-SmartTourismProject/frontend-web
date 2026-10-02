@@ -106,7 +106,7 @@ export default function TripDetailPage() {
   }
 
   if (!trip) {
-    return <div className="flex h-full items-center justify-center text-gray-400">Loading…</div>;
+    return <div className="flex h-full items-center justify-center text-gray-500">Loading…</div>;
   }
 
   return (
@@ -181,7 +181,7 @@ export default function TripDetailPage() {
                 {day.itinerary_item.map((item) => (
                   <li key={item.id} className="px-3 py-2 text-sm">
                     <span className="font-medium text-gray-900">{item.name}</span>
-                    <span className="ml-2 text-xs text-gray-400">{item.item_type}</span>
+                    <span className="ml-2 text-xs text-gray-500">{item.item_type}</span>
                     {item.notes && <p className="mt-0.5 text-xs text-gray-500">{item.notes}</p>}
                   </li>
                 ))}

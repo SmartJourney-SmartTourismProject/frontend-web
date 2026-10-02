@@ -32,7 +32,7 @@ export function BudgetsByTripPanel({
       </p>
 
       <div className="mt-3 flex flex-col gap-1">
-        {trips.length === 0 && <p className="text-sm text-gray-400">No trips with a budget yet.</p>}
+        {trips.length === 0 && <p className="text-sm text-gray-500">No trips with a budget yet.</p>}
         {trips.map((trip) => {
           const pct = trip.budget ? Math.min(100, Math.round((trip.spent / trip.budget) * 100)) : 0;
           const style = STATUS_STYLE[trip.status];

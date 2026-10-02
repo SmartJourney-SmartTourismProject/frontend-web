@@ -25,7 +25,7 @@ const CATEGORY_PLACEHOLDER: Record<string, { icon: typeof Building2; className: 
 export function ListingCard({ listing, index = 0 }: { listing: Listing; index?: number }) {
   const placeholder = CATEGORY_PLACEHOLDER[listing.category.name] ?? {
     icon: Building2,
-    className: 'bg-gray-100 text-gray-400',
+    className: 'bg-gray-100 text-gray-600',
   };
   const Icon = placeholder.icon;
   const district = listing.district?.name;

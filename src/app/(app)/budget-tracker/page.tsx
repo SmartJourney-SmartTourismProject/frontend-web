@@ -82,6 +82,10 @@ export default function BudgetTrackerPage() {
             </p>
           </div>
           <select
+            // Visually the heading next to it says what this chooses, but a
+            // screen reader reaching the control alone announced only "combo
+            // box" - axe's `select-name` rule, critical impact.
+            aria-label="Trip to show the budget for"
             value={selectedTripId ?? ''}
             onChange={(e) => setSelectedTripId(e.target.value)}
             className="rounded-xl border border-gray-300 px-3 py-2 text-sm font-medium text-brand-700"
@@ -181,7 +185,7 @@ function StatCard({
             '—'
           )}
         </p>
-        {sub && <p className="mt-0.5 text-xs text-gray-400">{sub}</p>}
+        {sub && <p className="mt-0.5 text-xs text-gray-500">{sub}</p>}
       </div>
     </RevealCard>
   );

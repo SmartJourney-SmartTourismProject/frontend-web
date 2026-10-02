@@ -99,7 +99,7 @@ export function SubscriptionTab() {
         ))}
       </div>
 
-      <p className="mt-5 text-center text-xs text-gray-400">Cancel anytime · Prices shown exclude local taxes</p>
+      <p className="mt-5 text-center text-xs text-gray-500">Cancel anytime · Prices shown exclude local taxes</p>
     </div>
   );
 }

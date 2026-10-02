@@ -71,7 +71,7 @@ export function Showcase() {
 
               <div className="flex items-center justify-between border-b border-gray-100 pb-4">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
                     Trip
                   </p>
                   <p className="font-serif text-lg font-semibold text-brand-600">
@@ -94,7 +94,7 @@ export function Showcase() {
                     className="flex items-center justify-between rounded-lg bg-gray-50 px-4 py-3 transition hover:bg-brand-50"
                   >
                     <div>
-                      <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
                         {row.day}
                       </p>
                       <p className="text-sm font-medium text-gray-800">{row.place}</p>

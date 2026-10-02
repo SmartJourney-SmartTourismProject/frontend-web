@@ -160,14 +160,14 @@ export function TrendChart({ series, height = 200 }: { series: Series[]; height?
           <span key={s.label} className="flex items-center gap-1.5">
             <span className="inline-block h-2 w-2 rounded-full" style={{ background: s.color }} aria-hidden />
             {s.label}
-            <span className="tabular-nums text-gray-400">
+            <span className="tabular-nums text-gray-500">
               {hover === null
                 ? `· ${s.points.reduce((a, p) => a + p.count, 0)} total`
                 : `· ${s.points[hover].count}`}
             </span>
           </span>
         ))}
-        {hover !== null && <span className="text-gray-400">on {shortDay(days[hover])}</span>}
+        {hover !== null && <span className="text-gray-500">on {shortDay(days[hover])}</span>}
       </figcaption>
     </figure>
   );
@@ -255,18 +255,18 @@ export function ModerationChart({
         <span className="flex items-center gap-1.5">
           <span className="inline-block h-2 w-2 rounded-full" style={{ background: SERIES.blue }} aria-hidden />
           Approved
-          <span className="tabular-nums text-gray-400">
+          <span className="tabular-nums text-gray-500">
             · {hover === null ? points.reduce((a, p) => a + p.approved, 0) : points[hover].approved}
           </span>
         </span>
         <span className="flex items-center gap-1.5">
           <span className="inline-block h-2 w-2 rounded-full" style={{ background: SERIES.red }} aria-hidden />
           Rejected
-          <span className="tabular-nums text-gray-400">
+          <span className="tabular-nums text-gray-500">
             · {hover === null ? points.reduce((a, p) => a + p.rejected, 0) : points[hover].rejected}
           </span>
         </span>
-        {hover !== null && <span className="text-gray-400">on {shortDay(points[hover].day)}</span>}
+        {hover !== null && <span className="text-gray-500">on {shortDay(points[hover].day)}</span>}
       </figcaption>
     </figure>
   );
@@ -284,7 +284,7 @@ export function BreakdownBars({
   color?: string;
 }) {
   if (rows.length === 0) {
-    return <p className="py-6 text-center text-sm text-gray-400">No data yet.</p>;
+    return <p className="py-6 text-center text-sm text-gray-500">No data yet.</p>;
   }
   const max = Math.max(...rows.map((r) => r.count), 1);
   return (
@@ -309,7 +309,7 @@ export function BreakdownBars({
 
 function Empty({ height }: { height: number }) {
   return (
-    <div className="flex items-center justify-center text-sm text-gray-400" style={{ height }}>
+    <div className="flex items-center justify-center text-sm text-gray-500" style={{ height }}>
       No data in this period.
     </div>
   );

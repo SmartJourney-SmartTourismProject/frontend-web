@@ -16,6 +16,13 @@ export default defineConfig({
   fullyParallel: true,
   retries: 0,
   reporter: 'html',
+  // `next dev` compiles each route on its first request, which on a cold server
+  // can take well over the 5s default - the signed-out journey flaked once
+  // because /login had not finished compiling before the assertion gave up.
+  // Raised rather than retried: a retry would hide a genuine regression behind
+  // a second attempt, while a longer wait only costs time when something is
+  // actually wrong.
+  expect: { timeout: 15_000 },
   use: { baseURL: BASE_URL, trace: 'on-first-retry' },
   projects: [
     // Signs in once and writes the session to STORAGE_STATE; everything below

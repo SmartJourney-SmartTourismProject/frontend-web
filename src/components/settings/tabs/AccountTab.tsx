@@ -245,7 +245,7 @@ export function AccountTab() {
       )}
 
       <motion.section variants={SECTION}>
-        <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Profile</p>
+        <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Profile</p>
 
         <Field
           label="Name"
@@ -307,7 +307,7 @@ export function AccountTab() {
       </motion.section>
 
       <motion.section variants={SECTION}>
-        <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Travel preferences</p>
+        <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Travel preferences</p>
         <p className="mt-1 text-xs text-gray-500">
           Used to fill in what you leave out of a trip request — interests, pace and budget.
         </p>
@@ -315,7 +315,7 @@ export function AccountTab() {
         <div className="mt-3 border-t border-gray-100 py-3">
           <p className="text-xs font-semibold text-brand-600">INTERESTS</p>
           <div className="mt-2 flex flex-wrap gap-2">
-            {tags.length === 0 && <span className="text-xs text-gray-400">{me ? 'No interest tags available yet.' : '…'}</span>}
+            {tags.length === 0 && <span className="text-xs text-gray-500">{me ? 'No interest tags available yet.' : '…'}</span>}
             {tags.map((t) => {
               const selected = prefs?.travel_interests.includes(t.tag) ?? false;
               return (
@@ -420,7 +420,7 @@ export function AccountTab() {
       </motion.section>
 
       <motion.section variants={SECTION}>
-        <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Privacy</p>
+        <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Privacy</p>
         <div className="mt-3 flex items-center justify-between border-t border-gray-100 py-3">
           <div>
             <p className="text-sm font-semibold text-gray-900">Enable location access</p>
@@ -435,7 +435,7 @@ export function AccountTab() {
       </motion.section>
 
       <motion.section variants={SECTION}>
-        <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Security</p>
+        <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Security</p>
         <div className="mt-3 flex items-center justify-between border-t border-gray-100 py-3">
           <div>
             <p className="text-sm font-semibold tracking-widest text-gray-900">••••••••••</p>
@@ -517,7 +517,7 @@ function Field({
       <div>
         <p className="text-xs font-semibold text-brand-600">{label.toUpperCase()}</p>
         <div className="mt-0.5">{value}</div>
-        {sub && <p className="mt-0.5 text-xs text-gray-400">{sub}</p>}
+        {sub && <p className="mt-0.5 text-xs text-gray-500">{sub}</p>}
       </div>
       {action}
     </div>
