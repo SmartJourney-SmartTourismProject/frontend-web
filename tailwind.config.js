@@ -12,7 +12,7 @@ module.exports = {
         serif: ['var(--font-serif)', 'Georgia', 'serif'],
       },
       colors: {
-        // Exact values from the Figma exports (frontend-web/figma/landing/index.tsx):
+        // Exact values from the Figma exports (Documentation/Design/UI_Mockups/landing/index.tsx):
         // deep purple for headings/sidebar, pink-to-purple gradient for CTAs.
         brand: {
           50: '#f5f1fa',

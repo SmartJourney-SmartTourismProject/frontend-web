@@ -6,7 +6,7 @@ import { authOptions } from '@/lib/auth';
 import { Providers } from './providers';
 
 // Fraunces (serif, headings/logo) + Alexandria (sans, body) match the brand
-// typography used throughout the Figma mockups (frontend-web/figma/).
+// typography used throughout the Figma mockups (Documentation/Design/UI_Mockups/).
 const fraunces = Fraunces({ subsets: ['latin'], variable: '--font-serif', weight: ['500', '600'] });
 const alexandria = Alexandria({
   subsets: ['latin'],

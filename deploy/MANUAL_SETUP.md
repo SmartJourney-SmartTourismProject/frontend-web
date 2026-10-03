@@ -1,6 +1,6 @@
 # Frontend: manual production setup (Vercel)
 
-This repo's part of the SmartJourney production deployment. The **full step-by-step guide** (AWS, Lightsail server, Keycloak, data load, backups, decommission) lives in the backend repo:
+This repo's part of the SmartJourney production deployment. The **full step-by-step guide** (AWS, EC2 server, Keycloak, data load, backups, decommission) lives in the backend repo:
 **[`backend/deploy/MANUAL_SETUP.md`](https://github.com/SmartJourney-SmartTourismProject/backend/blob/main/deploy/MANUAL_SETUP.md)**. This page covers everything specific to the Next.js app on Vercel.
 
 ## How it's deployed
@@ -8,7 +8,7 @@ This repo's part of the SmartJourney production deployment. The **full step-by-s
 | | |
 |---|---|
 | Where | **Vercel Hobby** (free), production URL `https://<project>.vercel.app` |
-| Server functions region | **Mumbai (`bom1`)**, next to Keycloak and the API on the Lightsail server |
+| Server functions region | **Mumbai (`bom1`)**, next to Keycloak and the API on the EC2 server |
 | Talks to | `https://api.<IP_DASHED>.sslip.io` (NestJS) from the **browser**, and `https://auth.<IP_DASHED>.sslip.io` (Keycloak) from the browser and from next-auth on Vercel |
 | Production deploys | **Only through this repo's GitHub Actions pipeline** (pushes to `new-main`, the default branch), after lint and tests pass |
 | Preview deploys | Vercel builds one per pull request automatically. They **can't sign in**, because Keycloak only allows the production URL. That's deliberate: no `*.vercel.app` wildcard. |

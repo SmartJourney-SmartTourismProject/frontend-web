@@ -1,7 +1,7 @@
 import type { ChatSession } from './types';
 
 /** Buckets sessions by `updated_at` into the three groups the sidebar
- * mockup uses (frontend-web/figma/home/TripNavigationSection.tsx). */
+ * mockup uses (Documentation/Design/UI_Mockups/home/TripNavigationSection.tsx). */
 export function groupByRecency(sessions: ChatSession[]) {
   const now = Date.now();
   const oneDayMs = 24 * 60 * 60 * 1000;
