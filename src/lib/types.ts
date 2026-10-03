@@ -130,6 +130,21 @@ export interface UserPreferences {
   updated_at: string | null;
 }
 
+/** GET/PATCH /users/me/notification-settings. Email is off until the user
+ * opts in; the three type switches decide which events get emailed. */
+export interface NotificationSettings {
+  trip_reminders: boolean;
+  weather_alerts: boolean;
+  budget_alerts: boolean;
+  push_enabled: boolean;
+  email_enabled: boolean;
+  sound_enabled: boolean;
+  sound_volume: number;
+  updated_at: string | null;
+}
+
+export type UpdateNotificationSettingsPayload = Partial<Omit<NotificationSettings, 'updated_at'>>;
+
 export interface UpdatePreferencesPayload {
   travel_interests?: string[];
   travel_style?: TravelStyle | null;

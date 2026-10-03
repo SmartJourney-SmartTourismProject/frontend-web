@@ -18,6 +18,7 @@ import type {
   District,
   EntryFeeQuery,
   Expense,
+  NotificationSettings,
   ExploreEvent,
   ListingsQuery,
   Me,
@@ -34,6 +35,7 @@ import type {
   TripStatus,
   UpdateMePayload,
   UpdatePreferencesPayload,
+  UpdateNotificationSettingsPayload,
   UserPreferences,
 } from './types';
 
@@ -193,6 +195,15 @@ export const usersApi = {
 
   updatePreferences: (patch: UpdatePreferencesPayload) =>
     api.patch<UserPreferences>('/users/me/preferences', patch).then((r) => r.data),
+
+  getNotificationSettings: () =>
+    api.get<NotificationSettings>('/users/me/notification-settings').then((r) => r.data),
+
+  updateNotificationSettings: (patch: UpdateNotificationSettingsPayload) =>
+    api.patch<NotificationSettings>('/users/me/notification-settings', patch).then((r) => r.data),
+
+  sendTestNotification: () =>
+    api.post<{ sent: boolean; to: string }>('/users/me/notification-settings/test').then((r) => r.data),
 };
 
 export const tripsApi = {
