@@ -15,7 +15,7 @@ import { useProfileStore } from '@/lib/profile-store';
 import { chatApi, usersApi } from '@/lib/api';
 import { groupByRecency } from '@/lib/group-by-recency';
 import { useTripStore } from '@/lib/trip-store';
-import { SettingsModal } from '@/components/settings/SettingsModal';
+import { SettingsModal, type SettingsTab } from '@/components/settings/SettingsModal';
 import type { ChatSession } from '@/lib/types';
 
 const NAV_ITEMS = [
@@ -36,6 +36,7 @@ export function AppSidebar() {
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [search, setSearch] = useState('');
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settingsTab, setSettingsTab] = useState<SettingsTab>('account');
   // Collapses to an icon rail rather than to zero width. A fully hidden
   // sidebar needs a floating button elsewhere on the page to bring it back;
   // the rail keeps navigation one click away while still returning most of
@@ -64,6 +65,20 @@ export function AppSidebar() {
       // Unknown: behave as the default (on) rather than never asking.
       .catch(() => setLocationEnabled(true));
   }, [setAvatarUrl, setLocationEnabled]);
+
+  // Notification emails link to `?settings=notifications` - open that tab,
+  // then drop the param so a refresh doesn't reopen it.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const tab = params.get('settings');
+    if (tab !== 'account' && tab !== 'subscription' && tab !== 'notifications') return;
+    setSettingsTab(tab);
+    setSettingsOpen(true);
+    params.delete('settings');
+    const query = params.toString();
+    router.replace(`${window.location.pathname}${query ? `?${query}` : ''}`);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once, on load
+  }, []);
 
   // Read after mount: localStorage does not exist during server rendering,
   // and seeding initial state from it would desync the markup.
@@ -256,7 +271,10 @@ export function AppSidebar() {
           type="button"
           title="Settings"
           aria-label="Settings"
-          onClick={() => setSettingsOpen(true)}
+          onClick={() => {
+            setSettingsTab('account');
+            setSettingsOpen(true);
+          }}
           className="rounded-lg p-1.5 text-gray-500 hover:bg-gray-100"
         >
           <Settings className="h-4 w-4" />
@@ -272,7 +290,13 @@ export function AppSidebar() {
         </button>
       </div>
 
-      <SettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+      <SettingsModal
+        // Remount per tab: the modal only reads initialTab when it mounts.
+        key={settingsTab}
+        open={settingsOpen}
+        initialTab={settingsTab}
+        onClose={() => setSettingsOpen(false)}
+      />
       <DeleteChatDialog
         session={deleteTarget}
         onCancel={() => setDeleteTarget(null)}
