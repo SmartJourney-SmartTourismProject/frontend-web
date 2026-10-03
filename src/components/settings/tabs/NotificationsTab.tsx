@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import { Bell, Clock, CloudRain, DollarSign, Loader2, Mail, Minus, Plus, Send, Volume2 } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Bell, Clock, CloudRain, DollarSign, Loader2, Mail, Send, Volume2 } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { Toggle } from '@/components/ui/Toggle';
 import { usersApi } from '@/lib/api';
@@ -32,14 +32,11 @@ const TRIP_UPDATES: Pref[] = [
 const PUSH: Pref = { key: 'push_enabled', icon: Bell, label: 'Push notifications', sub: 'Alerts on this device' };
 const EMAIL: Pref = { key: 'email_enabled', icon: Mail, label: 'Email notifications', sub: 'Send the updates above to my email' };
 
-const VOLUME_SAVE_DELAY_MS = 500;
-
 export function NotificationsTab() {
   const email = useSession().data?.user?.email;
   const [settings, setSettings] = useState<NotificationSettings | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [testState, setTestState] = useState<'idle' | 'sending' | 'sent'>('idle');
-  const volumeTimer = useRef<ReturnType<typeof setTimeout>>();
 
   useEffect(() => {
     let cancelled = false;
@@ -49,7 +46,6 @@ export function NotificationsTab() {
       .catch(() => !cancelled && setError('Could not load your notification settings.'));
     return () => {
       cancelled = true;
-      clearTimeout(volumeTimer.current);
     };
   }, []);
 
@@ -65,17 +61,6 @@ export function NotificationsTab() {
       setSettings(previous);
       setError('Could not save that change. Try again.');
     }
-  };
-
-  const setVolume = (next: number) => {
-    if (!settings) return;
-    const volume = Math.max(0, Math.min(100, next));
-    setSettings({ ...settings, sound_volume: volume });
-    // The slider fires on every pixel - save once it settles.
-    clearTimeout(volumeTimer.current);
-    volumeTimer.current = setTimeout(() => {
-      usersApi.updateNotificationSettings({ sound_volume: volume }).catch(() => setError('Could not save the volume.'));
-    }, VOLUME_SAVE_DELAY_MS);
   };
 
   const sendTest = async () => {
@@ -143,36 +128,6 @@ export function NotificationsTab() {
           checked={settings.sound_enabled}
           onChange={(v) => onChange('sound_enabled', v)}
         />
-
-        <div className="flex items-center justify-between border-t border-gray-100 py-3">
-          <div>
-            <p className="text-sm font-semibold text-gray-900">Volume</p>
-            <p className="text-xs text-gray-500">Adjust how loud alerts play</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setVolume(settings.sound_volume - 5)}
-              className="flex h-7 w-7 items-center justify-center rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50"
-            >
-              <Minus className="h-3.5 w-3.5" />
-            </button>
-            <input
-              type="range"
-              min={0}
-              max={100}
-              value={settings.sound_volume}
-              onChange={(e) => setVolume(Number(e.target.value))}
-              className="w-32 accent-brand-600"
-            />
-            <button
-              onClick={() => setVolume(settings.sound_volume + 5)}
-              className="flex h-7 w-7 items-center justify-center rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50"
-            >
-              <Plus className="h-3.5 w-3.5" />
-            </button>
-            <span className="w-10 text-right text-xs font-medium text-gray-600">{settings.sound_volume}%</span>
-          </div>
-        </div>
       </section>
     </div>
   );
